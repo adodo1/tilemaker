@@ -7,10 +7,13 @@ from threading import Thread
 
 # 1. input a extent like: tid, minX maxX, minY, maxY, zoom
 # 2. cal total of mission, add thread to work list, and show proess
+# 3. the sp use web mercator x: [ -20037508.3427892, 20037508.3427892 ]
 
 # globel vars
 mutex = threading.Lock()        # thread lock !
 socket.setdefaulttimeout(20)    # outtime set 20s
+PI = 3.14159265358979323846     # PI
+DOMAIN_LEN = 20037508.3427892   # web mercator
 
 proxies = {
   #"http": "http://220.202.123.34:55336"
@@ -184,9 +187,11 @@ def GetTask(fname):
         tasks[zoom] = {'minx':minx, 'maxx':maxx, 'miny':miny, 'maxy':maxy}
     return tasks
 
+##########################################################################
+
 
 if __name__ == '__main__':
-    # the main fun
+    # 
     print 'Tile Maker.'
     print 'Encode: %s' %  sys.getdefaultencoding()
 

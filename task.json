@@ -1,0 +1,184 @@
+{
+    "proxys": [],
+    "baseurl": "http://khm{subdomain}.{server}/kh/v={version}&hl=en&x={x}&y={y}&z={zoom}",
+    "version": 198,
+    "server": "google.cn",
+    "subdomain": [
+        "0",
+        "1",
+        "2"
+    ],
+    "tiles": [
+        {
+            "zoom": 0,
+            "buffer": "2147483647",
+            "total": 1,
+            "minx": 0,
+            "maxx": 0,
+            "miny": 0,
+            "maxy": 0
+        },
+        {
+            "zoom": 1,
+            "buffer": "2147483647",
+            "total": 4,
+            "minx": 0,
+            "maxx": 1,
+            "miny": 0,
+            "maxy": 1
+        },
+        {
+            "zoom": 2,
+            "buffer": "2147483647",
+            "total": 16,
+            "minx": 0,
+            "maxx": 3,
+            "miny": 0,
+            "maxy": 3
+        },
+        {
+            "zoom": 3,
+            "buffer": "2147483647",
+            "total": 64,
+            "minx": 0,
+            "maxx": 7,
+            "miny": 0,
+            "maxy": 7
+        },
+        {
+            "zoom": 4,
+            "buffer": "2147483647",
+            "total": 256,
+            "minx": 0,
+            "maxx": 15,
+            "miny": 0,
+            "maxy": 15
+        },
+        {
+            "zoom": 5,
+            "buffer": "2147483647",
+            "total": 1024,
+            "minx": 0,
+            "maxx": 31,
+            "miny": 0,
+            "maxy": 31
+        },
+        {
+            "zoom": 6,
+            "buffer": "10",
+            "total": 441,
+            "minx": 41,
+            "maxx": 61,
+            "miny": 17,
+            "maxy": 37
+        },
+        {
+            "zoom": 7,
+            "buffer": "10",
+            "total": 441,
+            "minx": 92,
+            "maxx": 112,
+            "miny": 45,
+            "maxy": 65
+        },
+        {
+            "zoom": 8,
+            "buffer": "10",
+            "total": 441,
+            "minx": 195,
+            "maxx": 215,
+            "miny": 100,
+            "maxy": 120
+        },
+        {
+            "zoom": 9,
+            "buffer": "10",
+            "total": 441,
+            "minx": 401,
+            "maxx": 421,
+            "miny": 210,
+            "maxy": 230
+        },
+        {
+            "zoom": 10,
+            "buffer": "10",
+            "total": 441,
+            "minx": 813,
+            "maxx": 833,
+            "miny": 430,
+            "maxy": 450
+        },
+        {
+            "zoom": 11,
+            "buffer": "10",
+            "total": 484,
+            "minx": 1636,
+            "maxx": 1657,
+            "miny": 870,
+            "maxy": 891
+        },
+        {
+            "zoom": 12,
+            "buffer": "10",
+            "total": 484,
+            "minx": 3283,
+            "maxx": 3304,
+            "miny": 1751,
+            "maxy": 1772
+        },
+        {
+            "zoom": 13,
+            "buffer": "10",
+            "total": 529,
+            "minx": 6576,
+            "maxx": 6598,
+            "miny": 3512,
+            "maxy": 3534
+        },
+        {
+            "zoom": 14,
+            "buffer": "10",
+            "total": 650,
+            "minx": 13162,
+            "maxx": 13186,
+            "miny": 7034,
+            "maxy": 7059
+        },
+        {
+            "zoom": 15,
+            "buffer": "10",
+            "total": 899,
+            "minx": 26334,
+            "maxx": 26362,
+            "miny": 14079,
+            "maxy": 14109
+        },
+        {
+            "zoom": 16,
+            "buffer": "10",
+            "total": 1554,
+            "minx": 52679,
+            "maxx": 52715,
+            "miny": 28168,
+            "maxy": 28209
+        },
+        {
+            "zoom": 17,
+            "buffer": "10",
+            "total": 3286,
+            "minx": 105369,
+            "maxx": 105421,
+            "miny": 56347,
+            "maxy": 56408
+        },
+        {
+            "zoom": 18,
+            "buffer": "10",
+            "total": 8755,
+            "minx": 210748,
+            "maxx": 210832,
+            "miny": 112705,
+            "maxy": 112807
+        }
+    ]
+}

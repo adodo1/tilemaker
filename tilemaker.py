@@ -5,16 +5,16 @@ import os, sys, math, requests, time
 import socket, threading, json, Queue
 from threading import Thread
 
-# 1. 输入一个范围参数 tid, minX maxX, minY, maxY, zoom
-# 2. 计算出总任务数 加入线程队列中 能够显示线程进度
+# 1. input a extent like: tid, minX maxX, minY, maxY, zoom
+# 2. cal total of mission, add thread to work list, and show proess
 # 3. 信息输出到数据库中, 失败信息也记录下来, 任务数不能超过10W
 #    如果程序结束后没有添加任何记录, 该数据库不会被保存
 # 4. 第一步获取 UID 列表
 
 
-# 定义全局变量
-mutex = threading.Lock()        # 线程锁
-socket.setdefaulttimeout(20)    # 超时时间15秒
+# globel vars
+mutex = threading.Lock()        # thread lock !
+socket.setdefaulttimeout(20)    # outtime set 20s
 
 proxies = {
   #"http": "http://220.202.123.34:55336"
@@ -23,7 +23,7 @@ proxies = {
 
 ##########################################################################
 class Worker(Thread):
-    # 线程池工作线程 只支持 python 2.7 或以上版本
+    # thread pool, must python 2.7 up
     worker_count = 0
     def __init__(self, workQueue, resultQueue, timeout = 0, **kwds):
        Thread.__init__(self, **kwds)
@@ -49,7 +49,7 @@ class Worker(Thread):
                 print 'worker[%2d]' % self.id, sys.exc_info()[:2]
 
 class WorkerPool:
-    # 线程池
+    # thread pool
     def __init__(self, num_of_workers=10, timeout = 1):
         self.workQueue = Queue.Queue()
         self.resultQueue = Queue.Queue()
@@ -77,11 +77,11 @@ class WorkerPool:
 ##########################################################################
 
 class Spider:
-    # 爬虫
+    # the spider
     def __init__(self, outpath):
-        # 初始化
+        # Initialize
         #/kh/v=693&x=210758&y=112861&z=18&s=Galileo
-        #self.TILES_URL = 'http://khm1.google.com/kh/v=692&hl=en&x={0}&y={1}&z={2}&s=Galile'        # 获取POI列表
+        #self.TILES_URL = 'http://khm1.google.com/kh/v=692&hl=en&x={0}&y={1}&z={2}&s=Galile'        # URLS
         self.TILES_URL = 'http://mt3.google.cn/vt/lyrs=s&hl=en&x={0}&y={1}&z={2}'   #
         self.outpath = outpath
         self.num = 0
@@ -169,70 +169,65 @@ def ShowInfo(text, level='i', save=False):
         open(LOG_FILE, 'a').write('{0} [{1}]: {2}\r\n'.format(stime, level[0], text))
     mutex.release()
 
+def GetTask(fname):
+    # get task from json file
+    #tasks = {
+    #    0: {'minx':0, 'maxx':0, 'miny':0, 'maxy':0},
+    #    1: {'minx':0, 'maxx':0, 'miny':0, 'maxy':0}
+    #        }
+    text = open(fname, 'r').read().encode('utf8')
+    decodejson = json.loads(text)
+    tasks = {}
+    for tile in decodejson['tiles']:
+        zoom = int(tile['zoom'])
+        minx = int(tile['minx'])
+        maxx = int(tile['maxx'])
+        miny = int(tile['miny'])
+        maxy = int(tile['maxy'])
+        tasks[zoom] = {'minx':minx, 'maxx':maxx, 'miny':miny, 'maxy':maxy}
+    return tasks
 
 
 if __name__ == '__main__':
-    # 入口函数
-    minX = 210660               # 最左边X号索引 单位是百度的瓦片索引坐标
-    maxX = 210905               # 最右边X号索引 单位是百度的瓦片索引坐标
-    minY = 112707               # 最下面Y号索引 单位是百度的瓦片索引坐标
-    maxY = 112879               # 最上面Y号索引 单位是百度的瓦片索引坐标
-    zoom  = 18                  # 缩放级别
+    # the main fun
+    print 'Tile Maker.'
+    print 'Encode: %s' %  sys.getdefaultencoding()
 
-    minX = 210752
-    maxX = 210783
-    minY = 112848
-    maxY = 112879
-    zoom = 18
-    '''
-0.59716428348
-0
-0
--0.59716428348
-12181004.82752570000
-2785976.80693810000
-    '''
-
-
-    #tid = sys.argv[1]
-    #minX = int(sys.argv[2])
-    #maxX = int(sys.argv[3])
-    #minY = int(sys.argv[4])
-    #maxY = int(sys.argv[5])
-    #zoom  = 19
+    # init
+    maxThreads = 16                         # the num of thread
+    outpath = './out/'                      # output path
+    jsonfile = 'task.json'                  # task json file
     
-    maxThreads = 16                         # 线程的数量
-    outpath = 'e:/output/'                  # 输出路径
-    
-    print '{0} -> [{1}, {2}, {3}, {4}] / zoom: {5} ...'.format(time.strftime(r'%m/%d %H:%M:%S'), minX, maxX, minY, maxY, zoom)
-    print '{0} -> total: {1} ...\n'.format(time.strftime(r'%m/%d %H:%M:%S'), (maxX - minX + 1) * (maxY - minY + 1))
-
-    #url = 'http://khm1.google.com/kh/v=193&hl=en&x=6583&y=3525&z=13&s=Gal'
-    #data = urllib.urlopen(url, proxies={'http':'http://220.202.123.42:55336'}).read()
-    #data = requests.get(url, proxies=proxies, stream=True)
-    #open('a.jpg', 'wb').write(data.raw.read())
-
-    
-    success = True
-    # 初始化
+    # make output dir
     if (os.path.exists(outpath)==False):
         os.makedirs(outpath)
 
+    # load task
+    tasks = GetTask(jsonfile)
+
+    # do work
+    success = True
     try:
-        tiles = []
-        for y in range(minY, maxY + 1):
-            for x in range(minX, maxX + 1):
-                tiles.append([x, y])
-                
-        spider = Spider(outpath)
-        spider.Work(maxThreads, tiles, zoom)
-        
-        #for tile in tiles:
-        #    x = tile[0]
-        #    y = tile[1]
-        #    spider.DownloadTiles(x, y, zoom)
-        #spider.GetIMG('http://khm1.google.com/kh/v=184&hl=en&x=6583&y=3525&z=13&s=Gal', './abc.jpg', 'http://220.202.123.42:55336')
-        
+        for zoom in tasks:
+            # each zoom
+            minX = tasks[zoom]['minx']      # the left X index
+            maxX = tasks[zoom]['maxx']      # the right X index
+            minY = tasks[zoom]['miny']      # the buttom Y index
+            maxY = tasks[zoom]['maxy']      # the top Y index
+            
+            # list of tile
+            tiles = []
+            for y in range(minY, maxY + 1):
+                for x in range(minX, maxX + 1):
+                    tiles.append([x, y])
+
+            print '{0} -> [{1}, {2}, {3}, {4}] / zoom: {5} ...'.format(time.strftime(r'%m/%d %H:%M:%S'), minX, maxX, minY, maxY, zoom)
+            print '{0} -> total: {1} ...\n'.format(time.strftime(r'%m/%d %H:%M:%S'), (maxX - minX + 1) * (maxY - minY + 1))
+            
+            # one of zooms
+            spider = Spider(outpath)
+            spider.Work(maxThreads, tiles, zoom)
+            
     except Exception, ex:
         print ex
         success = False

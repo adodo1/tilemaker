@@ -7,10 +7,6 @@ from threading import Thread
 
 # 1. input a extent like: tid, minX maxX, minY, maxY, zoom
 # 2. cal total of mission, add thread to work list, and show proess
-# 3. 信息输出到数据库中, 失败信息也记录下来, 任务数不能超过10W
-#    如果程序结束后没有添加任何记录, 该数据库不会被保存
-# 4. 第一步获取 UID 列表
-
 
 # globel vars
 mutex = threading.Lock()        # thread lock !
@@ -87,8 +83,8 @@ class Spider:
         self.num = 0
 
     def GetIMG(self, url, savefile):
-        # 下载图片 在这里可以处理链接超时 404 等错误
-        # 同时这里可以设置代理或构造数据头 页面编码等
+        # download picture, in this fun you can dispose outtime and 404 error etc.
+        # and you can set proxy and http head and encode etc.
         if (os.path.exists(savefile)): return True
         mutex.acquire()
         path, name = os.path.split(savefile)
@@ -113,58 +109,59 @@ class Spider:
                 print ex
                 return False
         
-    def DownloadTiles(self, x, y, zoom):
-        # 下载POI列表UID
+    def DownloadTiles(self, x, y, zoom, total):
+        # download tiles
         url = self.TILES_URL.format(x, y, zoom)
         try:
-            # 读取数据
+            # save file
             savefile = '%s/%d/R%08d/C%08d.JPG' % (self.outpath, zoom, y, x)
             success = self.GetIMG(url, savefile)
             
             if (success == False):
-                # 失败
+                # faile
                 error = 'Get IMG {%s, %s, %s} error' % (x, y, zoom)
                 ShowInfo(error, 'e', True)
             else:
-                # 成功
+                # success
                 self.num += 1
                 if (self.num % 10 == 0):
-                    ShowInfo('Downloaded IMG: %s' % (self.num))
+                    ShowInfo('Downloaded IMG: %s / %s' % (self.num, total))
                     
         except Exception, ex:
             ShowInfo('xxxxxx' + str(ex))
 
 
-    # 多线程控制 =============================================================
+    # =============================================================
     def Work(self, maxThreads, tiles, zoom):
-        # 下载瓦片
+        # the thread work
         self.num = 0
-        wp = WorkerPool(maxThreads)                     # 线程数量
+        wp = WorkerPool(maxThreads)                             # num of thread
+        total = len(tiles)
         for tile in tiles:
             x = tile[0]
             y = tile[1]
-            wp.add_job(self.DownloadTiles, x, y, zoom)  # 添加工作
-        wp.wait_for_complete()                          # 等待完成
+            wp.add_job(self.DownloadTiles, x, y, zoom, total)   # add work
+        wp.wait_for_complete()                                  # wait for complete
         ShowInfo('Total tiles {0}.'.format(len(tiles)))
 
 
 ##########################################################################
-LOG_FILE = './tiles.log'        # 线程日志
+LOG_FILE = './tiles.log'        # log file
 
 def ShowInfo(text, level='i', save=False):
-    # 输出信息
-    # text 信息内容
-    # level 信息类别 info, warning, error 
-    # save 是否保存到日志里
+    # display info
+    # text: infoation
+    # level: type of infoation > info, warning, error 
+    # save: save to file
     mutex.acquire()
-    # 打印时间
+    # print time
     if (level==None or len(level)==0): level='i'
     stime = time.strftime(r'%m/%d %H:%M:%S')
     print stime,
-    # 输出信息
+    # print info
     print '[{0}]:'.format(level[0]),
     print text
-    # 写入日志
+    # write to file
     if (save == True):
         open(LOG_FILE, 'a').write('{0} [{1}]: {2}\r\n'.format(stime, level[0], text))
     mutex.release()
@@ -221,6 +218,7 @@ if __name__ == '__main__':
                 for x in range(minX, maxX + 1):
                     tiles.append([x, y])
 
+            print '============================='
             print '{0} -> [{1}, {2}, {3}, {4}] / zoom: {5} ...'.format(time.strftime(r'%m/%d %H:%M:%S'), minX, maxX, minY, maxY, zoom)
             print '{0} -> total: {1} ...\n'.format(time.strftime(r'%m/%d %H:%M:%S'), (maxX - minX + 1) * (maxY - minY + 1))
             

@@ -117,7 +117,7 @@ class Spider:
         url = self.TILES_URL.format(x, y, zoom)
         try:
             # save file
-            savefile = '%s/%d/R%08d/C%08d.JPG' % (self.outpath, zoom, y, x)
+            savefile = '%s/L%02d/R%08d/C%08d.JPG' % (self.outpath, zoom, y, x)
             success = self.GetIMG(url, savefile)
             
             if (success == False):
@@ -213,22 +213,89 @@ class GMap:
         tileY = int(pixelY / self.TileSizeHeight)
         return tileX, tileY
 
-    def GetAreaTileList(self, min_lat, min_lng, max_lat, max_lng, zoom):
+    def FromPixelToCoordinate(self, x, y, zoom):
+        # from pixel xy in tile to gps lat lng
+        tile_full_width, tile_full_height = self.GetTileMatrixMaxXY(zoom)
+        mapsizex = (tile_full_width + 1) * self.TileSizeWidth
+        mapsizey = (tile_full_height + 1) * self.TileSizeHeight
+
+        xx = min(max(x, 0), mapsizex - 1) * 1.0 / mapsizex - 0.5
+        yy = 0.5 - (min(max(y, 0), mapsizey - 1) * 1.0 / mapsizey)
+
+        lat = 90 - 360.0 * math.atan(math.exp(-yy * 2 * math.pi)) / math.pi
+        lng = 360 * xx
+        return lat, lng
+
+    def GetTiles(self, top_lat, left_lng, bottom_lat, right_lng, zoom, buff = 0):
         # cal region small tile count
-        # min_lat, min_lng, max_lat, max_lat: region
+        # top_lat, left_lng, bottom_lat, right_lng: region
         # / top left bottom right
         # / y axis: lat 90 de ~ -90 de
         # / x axis: lng -180 de ~ 180 de
         # zoom: 0 ~ 19
-        left, top = self.FromCoordinateToTileXY(min_lat, min_lng, zoom)
-        right, bottom = self.FromCoordinateToTileXY(max_lat, max_lng, zoom)
+        # buff: tile buffer
 
-        result = []     # result
-        for x in range(left, right+1):
-            for y in range(top, bottom+1):
-                result.append([x, y])
+        # region -> tile extent
+        left, top = self.FromCoordinateToTileXY(top_lat, left_lng, zoom)            # tile
+        right, bottom = self.FromCoordinateToTileXY(bottom_lat, right_lng, zoom)    # tile
+        tmin_x, tmin_y = self.GetTileMatrixMinXY(zoom)                              # tile matrix size min
+        tmax_x, tmax_y = self.GetTileMatrixMaxXY(zoom)                              # tile matrix size max
+
+        # buffer
+        left = left - buff
+        top = top - buff
+        right = right + buff
+        bottom = bottom + buff
+
+        tile_min_x = min(max(left, tmin_x), tmax_x)
+        tile_max_x = min(max(right, tmin_x), tmax_x)
+        tile_min_y = min(max(top, tmin_y), tmax_y)
+        tile_max_y = min(max(bottom, tmin_y), tmax_y)
+        
+        # tile xy -> full pixel xy
+        pixel_lt_x = tile_min_x * self.TileSizeWidth
+        pixel_lt_y = tile_min_y * self.TileSizeHeight
+        pixel_rb_x = (tile_max_x + 1) * self.TileSizeWidth
+        pixel_rb_y = (tile_max_y + 1) * self.TileSizeHeight
+
+        # full pixel xy -> new gps extent
+        gps_lt_lat, gps_lt_lng = self.FromPixelToCoordinate(pixel_lt_x, pixel_lt_y, zoom)
+        gps_rb_lat, gps_rb_lng = self.FromPixelToCoordinate(pixel_rb_x, pixel_rb_y, zoom)
+
+        # full pixel xy -> mercator coordinate xy
+        pixel_full_width = (tmax_x + 1) * self.TileSizeWidth
+        pixel_full_height = (tmax_y + 1) * self.TileSizeHeight
+        mc_lt_x = (pixel_lt_x * 1.0 / pixel_full_width) * DOMAIN_LEN * 2 - DOMAIN_LEN
+        mc_lt_y = DOMAIN_LEN - (pixel_lt_y * 1.0 / pixel_full_height) * DOMAIN_LEN * 2
+        mc_rb_x = (pixel_rb_x * 1.0 / pixel_full_width) * DOMAIN_LEN * 2 - DOMAIN_LEN
+        mc_rb_y = DOMAIN_LEN - (pixel_rb_y * 1.0 / pixel_full_height) * DOMAIN_LEN * 2
+
+        # make json result
+        result = {
+            # tile info
+            'tile_minx':tile_min_x,
+            'tile_maxx':tile_max_x,
+            'tile_miny':tile_min_y,
+            'tile_maxy':tile_max_y,
+            # pixel info
+            'pixel_width':(tile_max_x - tile_min_x + 1) * self.TileSizeWidth,
+            'pixel_height':(tile_max_y - tile_min_y + 1) * self.TileSizeHeight,
+            # gps info
+            'gps_minlat':gps_rb_lat,
+            'gps_maxlat':gps_lt_lat,
+            'gps_minlng':gps_lt_lng,
+            'gps_maxlng':gps_rb_lng,
+            # mercator info
+            'mc_minx':mc_lt_x,
+            'mc_maxx':mc_rb_x,
+            'mc_miny':mc_lt_y,
+            'mc_maxy':mc_rb_y,
+            # tile total
+            'total':(tile_max_x - tile_min_x + 1) * (tile_max_y - tile_min_y + 1)
+            }
         
         return result
+
 
 
 ##########################################################################
@@ -255,19 +322,37 @@ def ShowInfo(text, level='i', save=False):
 def GetTask(fname):
     # get task from json file
     #tasks = {
-    #    0: {'minx':0, 'maxx':0, 'miny':0, 'maxy':0},
-    #    1: {'minx':0, 'maxx':0, 'miny':0, 'maxy':0}
+    #    0: {'tile_minx':0, 'tile_maxx':0, 'tile_miny':0, 'tile_maxy':0,            < tile info
+    #        'pixel_width':0, 'pixel_height':0,                                     < tile pixel size
+    #        'gps_minlat':24, 'gps_maxlat':24, 'gps_minlng':109, 'gps_maxlng':109,  < gps info
+    #        'mc_minx':0, 'mc_maxx':0, 'mc_miny':0, 'mc_maxy':0,                    < mercator info
+    #        'total':0
+    #        },
+    #    1: {'tile_minx':0, 'tile_maxx':0, 'tile_miny':0, 'tile_maxy':0,            < tile info
+    #        'pixel_width':0, 'pixel_height':0,                                     < tile pixel size
+    #        'gps_minlat':24, 'gps_maxlat':24, 'gps_minlng':109, 'gps_maxlng':109,  < gps info
+    #        'mc_minx':0, 'mc_maxx':0, 'mc_miny':0, 'mc_maxy':0,                    < mercator info
+    #        'total':0
     #        }
+    #   }
     text = open(fname, 'r').read().encode('utf8')
     decodejson = json.loads(text)
     tasks = {}
+
+    gmap = GMap()
+
+    top_lat = decodejson['top_lat']
+    left_lng = decodejson['left_lng']
+    bottom_lat = decodejson['bottom_lat']
+    right_lng = decodejson['right_lng']
+
+    
     for tile in decodejson['tiles']:
         zoom = int(tile['zoom'])
-        minx = int(tile['minx'])
-        maxx = int(tile['maxx'])
-        miny = int(tile['miny'])
-        maxy = int(tile['maxy'])
-        tasks[zoom] = {'minx':minx, 'maxx':maxx, 'miny':miny, 'maxy':maxy}
+        buff = int(tile['buffer'])
+
+        task = gmap.GetTiles(top_lat, left_lng, bottom_lat, right_lng, zoom, buff)
+        tasks[zoom] = task
     return tasks
 
 
@@ -280,6 +365,15 @@ if __name__ == '__main__':
     print 'Tile Maker.'
     print 'Encode: %s' %  sys.getdefaultencoding()
 
+    # test
+    # top_lat, left_lng, bottom_lat, right_lng, zoom, buff = 0
+    #gmap = GMap()
+    #result = gmap.GetTiles(24.305860391780953, 109.43051218986511,
+    #                       24.302868336020282, 109.43383812904358,
+    #                       17, 0)
+    #print json.dumps(result)
+
+    
     # init
     maxThreads = 16                         # the num of thread
     outpath = './out/'                      # output path
@@ -297,10 +391,10 @@ if __name__ == '__main__':
     try:
         for zoom in tasks:
             # each zoom
-            minX = tasks[zoom]['minx']      # the left X index
-            maxX = tasks[zoom]['maxx']      # the right X index
-            minY = tasks[zoom]['miny']      # the buttom Y index
-            maxY = tasks[zoom]['maxy']      # the top Y index
+            minX = tasks[zoom]['tile_minx']     # the left X index
+            maxX = tasks[zoom]['tile_maxx']     # the right X index
+            minY = tasks[zoom]['tile_miny']     # the buttom Y index
+            maxY = tasks[zoom]['tile_maxy']     # the top Y index
             
             # list of tile
             tiles = []

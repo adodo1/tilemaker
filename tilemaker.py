@@ -158,6 +158,7 @@ class GMap:
         self.MaxLongitude = 180             # max longitude
         self.TileSizeWidth = 256            # tile width
         self.TileSizeHeight = 256           # tile height
+        self.Dpi = 72.0                     # tile dpi
 
     def GetTileMatrixMinXY(self, zoom):
         # tile min xy
@@ -175,6 +176,40 @@ class GMap:
         width = (sMax[0] - sMin[0] + 1) * self.TileSizeWidth
         height = (sMax[1] - sMin[1] + 1) * self.TileSizeHeight
         return width, height
+
+    def GetMAPScale(self, zoom):
+        # http://wenku.baidu.com/link?url=I-RdILcOskWLkqYvLetcFFr7JiURwY4WxfOlKEe8gwkJp_WS6O9H7KNOz0YTBu5Fo8Ff0WcurgeYVPvRY2c2k10805MV-Taj4JXRK4aVqje
+        # http://www.360doc.com/content/15/0319/13/9009195_456410364.shtml
+        # http://wenku.baidu.com/view/359c88d6b14e852458fb5754.html
+        # http://www.cnblogs.com/beniao/archive/2010/04/18/1714544.html
+        #
+        #level     dis       px    map_dis   dpi      scale      ground_resolution
+        #level2    5000km    70    2.47cm    72dpi    2b : 1     71km    
+        #level3    2000km    55    1.94cm    72dpi    1b : 1     36km    36363.63636363636
+        #level4    2000km    115   4.06cm    72dpi    5kw : 1    17km    17391.30434782609
+        #level5    1000km    115   4.06cm    72dpi    2.5kw : 1  9km     8695.652173913043
+        #level6    500km     115   4.06cm    72dpi    1.2kw : 1  4km     4347.826086956522
+        #level7    200km     91    3.21cm    72dpi    6hw : 1    2km     2197.802197802198
+        #level8    100km     176   6.21cm    72dpi    160w : 1   568m    568.1818181818182
+        #level9    50km      91    3.21cm    72dpi    155w : 1   549m    549.4505494505495
+        #level10   20km      72    2.54cm    72dpi    80w : 1    278m    277.7777777777778
+        #level11   10km      72    2.54cm    72dpi    40w : 1    139m    138.8888888888889
+        #level12   5km       72    2.54cm    72dpi    20w : 1    69m     69.44444444444444
+        #level13   2km       57    2.01cm    72dpi    10w : 1    35m     35.0877192982456
+        #level14   2km       118   4.16cm    72dpi    5w : 1     17m     16.9491525423729
+        #level15   1km       118   4.16cm    72dpi    2.5w : 1   8m      8.4745762711864
+        #level16   500m      118   4.16cm    72dpi    1.2w : 1   4m      4.23728813559322
+        #level17   200m      93    3.28cm    72dpi    2300 : 1   2.15m   2.150537634408602
+        #level18   100m      93    3.28cm    72dpi    3000 : 1   1.07m   1.075268817204301
+        #level19   50m       93    3.28cm    72dpi    1500 : 1   0.54m   0.5376344086021505
+        #level20   20m       74    2.61cm    72dpi    800 : 1    0.27m   0.2702702702702703
+        
+        tile_full_px = self.GetTileMatrixSizePixel(zoom)[0]
+        map_dis = tile_full_px * 0.0254 / self.Dpi          # the dis on map
+        ground_dis = DOMAIN_LEN * 2                         # the dis on ground
+        scale = ground_dis / map_dis
+        return scale
+    
 
     def FromCoordinateToPixel(self, lat, lng, zoom):
         # gps coordinate to pixel xy  [ gps > pixel xy ]
@@ -314,15 +349,70 @@ class MAPMetedata:
     def SaveTfw(self):
         # save tfw file
         for zoom in tasks:
+            # WLD -- ESRI World File
+            # A world file file is a plain ASCII text file consisting of six values separated by newlines. The format is:
+            # . pixel X size (m/px)
+            # . rotation about the Y axis (usually 0.0)
+            # . rotation about the X axis (usually 0.0)
+            # . negative pixel Y size (-m/px)
+            # . X coordinate of upper left pixel center (m)
+            # . Y coordinate of upper left pixel center (m)
+            pixX = (tasks[zoom]['mc_maxx'] - tasks[zoom]['mc_minx']) * 1.0 / tasks[zoom]['pixel_width']
+            pixY = (tasks[zoom]['mc_maxy'] - tasks[zoom]['mc_miny']) * 1.0 / tasks[zoom]['pixel_height']
+            roX = 0
+            roY = 0
+            offsetX = tasks[zoom]['mc_minx']
+            offsetY = tasks[zoom]['mc_miny']
             
             ftfw = open(self.mappath + 'L%02d.tfw' % zoom, 'w')
-            ftfw.write('')
+            ftfw.write('%.12f\n' % pixX)
+            ftfw.write('%.10f\n' % roX)
+            ftfw.write('%.10f\n' % roY)
+            ftfw.write('%.12f\n' % pixY)
+            ftfw.write('%.8f\n' % offsetX)
+            ftfw.write('%.8f\n' % offsetY)
+            ftfw.write('\n')
             ftfw.close()
-        pass
 
     def SaveConf(self):
-        # 
+        # save conf.cdi conf.xml
+
+
+        print '----------------'
+        gmap = GMap()
+        print gmap.GetMAPScale(2)
+        
+        '''
+        # ----conf.xml
+        lodinfos = ''
+        for zoom in tasks:
+            #
+            
+            pass
+        
+        
+        # ----conf.cdi
+        xMin = tasks[17]['mc_minx']
+        yMin = tasks[17]['mc_miny']
+        xMax = tasks[17]['mc_maxx']
+        yMax = tasks[17]['mc_maxy']
+        
+        fcdi = open(self.mappath + 'conf.cdi', 'w')
+            """
+<?xml version="1.0" encoding="utf-8"?>
+<EnvelopeN xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:typens="http://www.esri.com/schemas/ArcGIS/10.0"
+           xsi:type="typens:EnvelopeN">
+  <XMin>%.9f</XMin>
+  <YMin>%.9f</YMin>
+  <XMax>%.9f</XMax>
+  <YMax>%.9f</YMax>
+</EnvelopeN>
+            """ % (xMin, yMin, xMax, yMax))
+        fcdi.close()
         pass
+        '''
 
 
 
@@ -428,7 +518,7 @@ if __name__ == '__main__':
         mmetedata.SaveTask()
         mmetedata.SaveTfw()
         mmetedata.SaveConf()
-        
+        '''
         for zoom in tasks:
             # each zoom
             minX = tasks[zoom]['tile_minx']     # the left X index
@@ -449,6 +539,7 @@ if __name__ == '__main__':
             # one of zooms
             spider = Spider(lay_path)
             spider.Work(maxThreads, tiles, zoom)
+        '''
             
     except Exception, ex:
         print ex

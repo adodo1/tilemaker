@@ -117,7 +117,7 @@ class Spider:
         url = self.TILES_URL.format(x, y, zoom)
         try:
             # save file
-            savefile = '%s/L%02d/R%08d/C%08d.JPG' % (self.outpath, zoom, y, x)
+            savefile = '%s/L%02d/R%08x/C%08x.JPG' % (self.outpath, zoom, y, x)
             success = self.GetIMG(url, savefile)
             
             if (success == False):
@@ -296,6 +296,34 @@ class GMap:
         
         return result
 
+##########################################################################
+
+class MAPMetedata:
+    # map metedata
+    def __init__(self, mappath, tasks):
+        # init
+        self.mappath = mappath  # the map path
+        self.tasks = tasks      # all tasks
+
+    def SaveTask(self):
+        # save tasks to json file
+        ftask = open(self.mappath + 'tasks.json', 'w')
+        ftask.write(json.dumps(self.tasks))
+        ftask.close()
+
+    def SaveTfw(self):
+        # save tfw file
+        for zoom in tasks:
+            
+            ftfw = open(self.mappath + 'L%02d.tfw' % zoom, 'w')
+            ftfw.write('')
+            ftfw.close()
+        pass
+
+    def SaveConf(self):
+        # 
+        pass
+
 
 
 ##########################################################################
@@ -378,10 +406,16 @@ if __name__ == '__main__':
     maxThreads = 16                         # the num of thread
     outpath = './out/'                      # output path
     jsonfile = 'task.json'                  # task json file
+    mapname = 'MAP'                         # map name
+
+
+    map_path = outpath + mapname + '/'
+    lay_path = map_path + '_alllayers/'
     
     # make output dir
-    if (os.path.exists(outpath)==False):
-        os.makedirs(outpath)
+    
+    if (os.path.exists(lay_path)==False):
+        os.makedirs(lay_path)
 
     # load task
     tasks = GetTask(jsonfile)
@@ -389,6 +423,12 @@ if __name__ == '__main__':
     # do work
     success = True
     try:
+        # save metedata
+        mmetedata = MAPMetedata(map_path, tasks)
+        mmetedata.SaveTask()
+        mmetedata.SaveTfw()
+        mmetedata.SaveConf()
+        
         for zoom in tasks:
             # each zoom
             minX = tasks[zoom]['tile_minx']     # the left X index
@@ -407,7 +447,7 @@ if __name__ == '__main__':
             print '{0} -> total: {1} ...\n'.format(time.strftime(r'%m/%d %H:%M:%S'), (maxX - minX + 1) * (maxY - minY + 1))
             
             # one of zooms
-            spider = Spider(outpath)
+            spider = Spider(lay_path)
             spider.Work(maxThreads, tiles, zoom)
             
     except Exception, ex:

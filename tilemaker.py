@@ -177,11 +177,12 @@ class GMap:
         height = (sMax[1] - sMin[1] + 1) * self.TileSizeHeight
         return width, height
 
-    def GetMAPScale(self, zoom):
+    def GetMAPScale(self, zoom, lat=0):
         # http://wenku.baidu.com/link?url=I-RdILcOskWLkqYvLetcFFr7JiURwY4WxfOlKEe8gwkJp_WS6O9H7KNOz0YTBu5Fo8Ff0WcurgeYVPvRY2c2k10805MV-Taj4JXRK4aVqje
         # http://www.360doc.com/content/15/0319/13/9009195_456410364.shtml
         # http://wenku.baidu.com/view/359c88d6b14e852458fb5754.html
         # http://www.cnblogs.com/beniao/archive/2010/04/18/1714544.html
+        # http://gis.stackexchange.com/questions/7430/what-ratio-scales-do-google-maps-zoom-levels-correspond-to < useful
         #
         #level     dis       px    map_dis   dpi      scale      ground_resolution
         #level2    5000km    70    2.47cm    72dpi    2b : 1     71km    
@@ -203,11 +204,21 @@ class GMap:
         #level18   100m      93    3.28cm    72dpi    3000 : 1   1.07m   1.075268817204301
         #level19   50m       93    3.28cm    72dpi    1500 : 1   0.54m   0.5376344086021505
         #level20   20m       74    2.61cm    72dpi    800 : 1    0.27m   0.2702702702702703
-        
-        tile_full_px = self.GetTileMatrixSizePixel(zoom)[0]
-        map_dis = tile_full_px * 0.0254 / self.Dpi          # the dis on map
-        ground_dis = DOMAIN_LEN * 2                         # the dis on ground
-        scale = ground_dis / map_dis
+
+        # ground_resolution = (math.cos(lat * math.pi/180) * 2 * math.pi * 6378137) / (256 * 2^level)
+        # map_scale = (math.cos(lat * math.pi/180) * 2 * math.pi * 6378137 * dpi) / (256 * 2^level * 0.0254)
+        # ---------------------------------------------------
+        # fun 1
+        #tile_full_px = self.GetTileMatrixSizePixel(zoom)[0]
+        #map_dis = tile_full_px * 0.0254 / self.Dpi          # the dis on map
+        #ground_dis = DOMAIN_LEN * 2                         # the dis on ground
+        #scale = ground_dis / map_dis
+        # ---------------------------------------------------
+        # fun 2
+        scale = (math.cos(lat * math.pi/180) * (DOMAIN_LEN * 2) * self.Dpi) / (256 * (2 ** zoom) * 0.0254)
+        # ---------------------------------------------------
+        # fun3
+        #scale = 591657550.500000 / (2^(zoom-1))
         return scale
     
 
@@ -380,7 +391,7 @@ class MAPMetedata:
 
         print '----------------'
         gmap = GMap()
-        print gmap.GetMAPScale(2)
+        print gmap.GetMAPScale(18, 39)
         
         '''
         # ----conf.xml

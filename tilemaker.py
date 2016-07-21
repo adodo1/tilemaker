@@ -147,6 +147,89 @@ class Spider:
         wp.wait_for_complete()                                  # wait for complete
         ShowInfo('Total tiles {0}.'.format(len(tiles)))
 
+##########################################################################
+
+class GMap:
+    # GMap class
+    def __init__(self):
+        self.MinLatitude = -85.05112878     # min latitude
+        self.MaxLatitude = 85.05112878      # max latitude
+        self.MinLongitude = -180            # min longitude
+        self.MaxLongitude = 180             # max longitude
+        self.TileSizeWidth = 256            # tile width
+        self.TileSizeHeight = 256           # tile height
+
+    def GetTileMatrixMinXY(self, zoom):
+        # tile min xy
+        return 0, 0
+
+    def GetTileMatrixMaxXY(self, zoom):
+        # tile max xy
+        xy = (1 << zoom)
+        return xy - 1, xy - 1
+
+    def GetTileMatrixSizePixel(self, zoom):
+        # tile full pixel size
+        sMin = self.GetTileMatrixMinXY(zoom)
+        sMax = self.GetTileMatrixMaxXY(zoom)
+        width = (sMax[0] - sMin[0] + 1) * self.TileSizeWidth
+        height = (sMax[1] - sMin[1] + 1) * self.TileSizeHeight
+        return width, height
+
+    def FromCoordinateToPixel(self, lat, lng, zoom):
+        # gps coordinate to pixel xy  [ gps > pixel xy ]
+        # lat: latitude
+        # lng: longitude
+        # zoom: 0 ~ 19
+
+        # core !!
+        # x=(y + 180) / 360
+        # y = 0.5 - log((1 + sin(x * 3.1415926 / 180)) / (1 - sin(x * 3.1415926 / 180))) / (4 * pi)
+        # y = (1 - (log(tan(x * 3.1415926 / 180) + sec(x * 3.1415926 / 180)) / pi)) / 2
+        lat = min(max(lat, self.MinLatitude), self.MaxLatitude)
+        lng = min(max(lng, self.MinLongitude), self.MaxLongitude)
+
+        x = (lng + 180) / 360
+        y = 0.5 - math.log((1 + math.sin(lat * math.pi / 180)) / (1 - math.sin(lat * math.pi / 180))) / (4 * math.pi)
+
+        mapSizeX, mapSizeY = self.GetTileMatrixSizePixel(zoom)
+        pixelX = min(max(x * mapSizeX + 0.5, 0), mapSizeX - 1)
+        pixelY = min(max(y * mapSizeY + 0.5, 0), mapSizeY - 1)
+        
+        return int(pixelX), int(pixelY)
+
+    def FromCoordinateToTileXY(self, lat, lng, zoom):
+        # gps coordinate to tile xy  [ gps > tile xy ]
+        # lat: latitude
+        # lng: longitude
+        # zoom: 0 ~ 19
+        pixelX, pixelY = self.FromCoordinateToPixel(lat, lng, zoom)
+        tileX, tileY = self.FromPixelToTileXY(pixelX, pixelY)
+        return tileX, tileY
+
+    def FromPixelToTileXY(self, pixelX, pixelY):
+        # full pixel xy to tile xy index
+        tileX = int(pixelX / self.TileSizeWidth)
+        tileY = int(pixelY / self.TileSizeHeight)
+        return tileX, tileY
+
+    def GetAreaTileList(self, min_lat, min_lng, max_lat, max_lng, zoom):
+        # cal region small tile count
+        # min_lat, min_lng, max_lat, max_lat: region
+        # / top left bottom right
+        # / y axis: lat 90 de ~ -90 de
+        # / x axis: lng -180 de ~ 180 de
+        # zoom: 0 ~ 19
+        left, top = self.FromCoordinateToTileXY(min_lat, min_lng, zoom)
+        right, bottom = self.FromCoordinateToTileXY(max_lat, max_lng, zoom)
+
+        result = []     # result
+        for x in range(left, right+1):
+            for y in range(top, bottom+1):
+                result.append([x, y])
+        
+        return result
+
 
 ##########################################################################
 LOG_FILE = './tiles.log'        # log file
@@ -186,6 +269,8 @@ def GetTask(fname):
         maxy = int(tile['maxy'])
         tasks[zoom] = {'minx':minx, 'maxx':maxx, 'miny':miny, 'maxy':maxy}
     return tasks
+
+
 
 ##########################################################################
 

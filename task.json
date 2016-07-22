@@ -4,66 +4,66 @@
     "version": 198,
     "server": "google.cn",
     "subdomain": ["0", "1", "2"],
-    "top_lat": 24.305860391780953,
-    "left_lng": 109.43051218986511,
-    "bottom_lat": 24.302868336020282,
-    "right_lng": 109.43383812904358,
+    "top_lat": 24.5733530658,
+    "left_lng": 109.2054748535,
+    "bottom_lat": 24.0834549244,
+    "right_lng": 109.8042297363,
     "tiles": [{
         "zoom": 0,
-        "buffer": 0
+        "buffer": 1
     }, {
         "zoom": 1,
-        "buffer": 0
+        "buffer": 2
     }, {
         "zoom": 2,
-        "buffer": 0
+        "buffer": 4
     }, {
         "zoom": 3,
-        "buffer": 0
+        "buffer": 8
     }, {
         "zoom": 4,
-        "buffer": 0
+        "buffer": 16
     }, {
         "zoom": 5,
-        "buffer": 0
+        "buffer": 16
     }, {
         "zoom": 6,
-        "buffer": 0
+        "buffer": 16
     }, {
         "zoom": 7,
-        "buffer": 0
+        "buffer": 16
     }, {
         "zoom": 8,
-        "buffer": 0
+        "buffer": 16
     }, {
         "zoom": 9,
-        "buffer": 0
+        "buffer": 16
     }, {
         "zoom": 10,
-        "buffer": 0
+        "buffer": 8
     }, {
         "zoom": 11,
-        "buffer": 0
+        "buffer": 8
     }, {
         "zoom": 12,
-        "buffer": 0
+        "buffer": 8
     }, {
         "zoom": 13,
-        "buffer": 0
+        "buffer": 8
     }, {
         "zoom": 14,
-        "buffer": 0
+        "buffer": 8
     }, {
         "zoom": 15,
-        "buffer": 0
+        "buffer": 8
     }, {
         "zoom": 16,
-        "buffer": 0
+        "buffer": 8
     }, {
         "zoom": 17,
-        "buffer": 0
+        "buffer": 8
     }, {
         "zoom": 18,
-        "buffer": 0
+        "buffer": 8
     }]
 }

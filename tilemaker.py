@@ -158,7 +158,7 @@ class GMap:
         self.MaxLongitude = 180             # max longitude
         self.TileSizeWidth = 256            # tile width
         self.TileSizeHeight = 256           # tile height
-        self.Dpi = 72.0                     # tile dpi
+        self.Dpi = 96.0                     # tile dpi
 
     def GetTileMatrixMinXY(self, zoom):
         # tile min xy
@@ -220,7 +220,10 @@ class GMap:
         # fun3
         #scale = 591657550.500000 / (2^(zoom-1))
         return scale
-    
+    def GetGroundResolution(self, zoom, lat=0):
+        # get resolution
+        ground_resolution = (math.cos(lat * math.pi/180) * 2 * math.pi * 6378137) / (256 * (2 ** zoom))
+        return ground_resolution
 
     def FromCoordinateToPixel(self, lat, lng, zoom):
         # gps coordinate to pixel xy  [ gps > pixel xy ]
@@ -356,6 +359,7 @@ class MAPMetedata:
         ftask = open(self.mappath + 'tasks.json', 'w')
         ftask.write(json.dumps(self.tasks))
         ftask.close()
+        ShowInfo('write tasks.json complete.')
 
     def SaveTfw(self):
         # save tfw file
@@ -384,33 +388,120 @@ class MAPMetedata:
             ftfw.write('%.8f\n' % offsetY)
             ftfw.write('\n')
             ftfw.close()
+            ShowInfo('write L%02d.tfw complete.' % zoom)
 
     def SaveConf(self):
         # save conf.cdi conf.xml
-
-
-        print '----------------'
-        gmap = GMap()
-        print gmap.GetMAPScale(18, 39)
-        
-        '''
         # ----conf.xml
         lodinfos = ''
+        gmap = GMap()
+        xMin = None
+        yMin = None
+        xMax = None
+        yMax = None
         for zoom in tasks:
-            #
+            # fill lodinfo
+            if (xMin == None): xMin = tasks[zoom]['mc_minx']
+            if (yMin == None): yMin = tasks[zoom]['mc_miny']
+            if (xMax == None): xMax = tasks[zoom]['mc_maxx']
+            if (yMax == None): yMax = tasks[zoom]['mc_maxy']
+            # scale resolution
+            scale = gmap.GetMAPScale(zoom)
+            resolution = gmap.GetGroundResolution(zoom)
+            lodinfos += """
+      <LODInfo xsi:type="typens:LODInfo">
+        <LevelID>%d</LevelID>
+        <Scale>%d</Scale>
+        <Resolution>%.15f</Resolution>
+      </LODInfo>
+            """ % (zoom, scale, resolution)
             
-            pass
-        
+        # LODInfos
+        lodinfos = """
+    <LODInfos xsi:type="typens:ArrayOfLODInfo">
+    %s
+    </LODInfos>
+        """ % lodinfos
+        # TileImageInfo
+        tileimageinfo = """
+  <TileImageInfo xsi:type="typens:TileImageInfo">
+    <CacheTileFormat>JPEG</CacheTileFormat>
+    <CompressionQuality>75</CompressionQuality>
+    <Antialiasing>false</Antialiasing>
+  </TileImageInfo>
+        """
+        # CacheStorageInfo
+        cachestorageinfo = """
+  <CacheStorageInfo xsi:type="typens:CacheStorageInfo">
+    <StorageFormat>esriMapCacheStorageModeExploded</StorageFormat>
+    <PacketSize>0</PacketSize>
+  </CacheStorageInfo>
+        """
+        # SpatialReference
+        spatialreference = """
+    <SpatialReference xsi:type="typens:ProjectedCoordinateSystem">
+      <WKT>PROJCS["WGS_1984_Web_Mercator",GEOGCS["GCS_WGS_1984_Major_Auxiliary_Sphere",DATUM["D_WGS_1984_Major_Auxiliary_Sphere",SPHEROID["WGS_1984_Major_Auxiliary_Sphere",6378137.0,0.0]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Mercator"],PARAMETER["false_easting",0.0],PARAMETER["false_northing",0.0],PARAMETER["central_meridian",0.0],PARAMETER["standard_parallel_1",0.0],UNIT["Meter",1.0],AUTHORITY["ESRI",102113]]</WKT>
+    </SpatialReference>
+        """
+        # TileOrigin
+        tileorigin = """
+    <TileOrigin xsi:type="typens:PointN">
+      <X>-20037508.342787001</X>
+      <Y>20037508.342787001</Y>
+    </TileOrigin>
+        """
+        # TileCols
+        tilecols = """
+    <TileCols>256</TileCols>
+        """
+        # TileRows
+        tilerows = """
+    <TileRows>256</TileRows>
+        """
+        # DPI
+        dpi = """
+    <DPI>96</DPI>
+        """
+        # TileCacheInfo
+        tilecacheinfo = """
+  <TileCacheInfo xsi:type="typens:TileCacheInfo">
+{SpatialReference}
+{TileOrigin}
+{TileCols}
+{TileRows}
+{DPI}
+{LODInfos}
+  </TileCacheInfo>
+        """.format(SpatialReference = spatialreference,
+                   TileOrigin = tileorigin,
+                   TileCols = tilecols,
+                   TileRows = tilerows,
+                   DPI = dpi,
+                   LODInfos = lodinfos)
+        # CacheInfo
+        cacheinfo = """<?xml version="1.0" encoding="utf-8"?>
+
+<CacheInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:typens="http://www.esri.com/schemas/ArcGIS/10.0"
+            xsi:type="typens:CacheInfo">
+{TileCacheInfo}
+{TileImageInfo}
+{CacheStorageInfo}
+</CacheInfo>
+        """.format(TileCacheInfo = tilecacheinfo,
+                   TileImageInfo = tileimageinfo,
+                   CacheStorageInfo = cachestorageinfo)
+
+        fxml = open(self.mappath + 'conf.xml', 'w')
+        fxml.write(cacheinfo.encode('utf8'))
+        fxml.close()
+        ShowInfo('write conf.xml complete.')
         
         # ----conf.cdi
-        xMin = tasks[17]['mc_minx']
-        yMin = tasks[17]['mc_miny']
-        xMax = tasks[17]['mc_maxx']
-        yMax = tasks[17]['mc_maxy']
-        
         fcdi = open(self.mappath + 'conf.cdi', 'w')
-            """
-<?xml version="1.0" encoding="utf-8"?>
+        cditxt = """<?xml version="1.0" encoding="utf-8"?>
+
 <EnvelopeN xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:typens="http://www.esri.com/schemas/ArcGIS/10.0"
@@ -420,10 +511,12 @@ class MAPMetedata:
   <XMax>%.9f</XMax>
   <YMax>%.9f</YMax>
 </EnvelopeN>
-            """ % (xMin, yMin, xMax, yMax))
+            """ % (-20037500, -20037500, 20037500, 20037500)
+        
+        fcdi.write(cditxt.encode('utf8'))
         fcdi.close()
-        pass
-        '''
+        ShowInfo('write conf.cdi complete.')
+        
 
 
 
@@ -502,6 +595,8 @@ if __name__ == '__main__':
     #                       17, 0)
     #print json.dumps(result)
 
+    # !!!! bundle file !!!!
+    # http://www.cnblogs.com/yuantf/p/3320876.html
     
     # init
     maxThreads = 16                         # the num of thread
@@ -529,7 +624,7 @@ if __name__ == '__main__':
         mmetedata.SaveTask()
         mmetedata.SaveTfw()
         mmetedata.SaveConf()
-        '''
+        
         for zoom in tasks:
             # each zoom
             minX = tasks[zoom]['tile_minx']     # the left X index
@@ -550,7 +645,7 @@ if __name__ == '__main__':
             # one of zooms
             spider = Spider(lay_path)
             spider.Work(maxThreads, tiles, zoom)
-        '''
+        
             
     except Exception, ex:
         print ex

@@ -583,7 +583,8 @@ def GetTask(fname):
 
 
 if __name__ == '__main__':
-    # 
+    #
+    print '[==DoDo==]'
     print 'Tile Maker.'
     print 'Encode: %s' %  sys.getdefaultencoding()
 

@@ -67,9 +67,77 @@ class BundleClass:
         fbundle.seek(position)
         value = fbundle.read(4)
         size = struct.unpack('i', value)[0]
-        image = fbundle.read(size)
+        if (size == 0): image = None
+        else: image = fbundle.read(size)
         fbundle.close()
         return image
+
+    def CreateNew(self, start_row, start_col):
+        # 创建新的瓦片存储文件
+        bundleHead = {
+            'fixed_00_07': '0300000000400000'.decode('hex'),
+            'maxsize_08_11': '00000000'.decode('hex'),
+            'fixed_12_15': '05000000'.decode('hex'),
+            'nonull_16_19': '00000000'.decode('hex'),
+            'unknow_20_23': '00000000'.decode('hex'),
+            'filesize_24_27': struct.pack('i', 60 + 4*128*128),
+            'unknow_28_31': '00000000'.decode('hex'),
+            'fixed_32_43': '280000000000000010000000'.decode('hex'),
+            'startrow_44_47': struct.pack('i', start_row),
+            'endrow_48_51': struct.pack('i', start_row + 128),
+            'startcol_52_55': struct.pack('i', start_col),
+            'endcol_56_59': struct.pack('i', start_col + 128),
+            'nullindex_60_65596': ''.zfill(4*128*128*2).decode('hex')
+            }
+        #
+        fbundle = open(self.fname, 'wb')
+        fbundle.write(bundleHead['fixed_00_07'])
+        fbundle.write(bundleHead['maxsize_08_11'])
+        fbundle.write(bundleHead['fixed_12_15'])
+        fbundle.write(bundleHead['nonull_16_19'])
+        fbundle.write(bundleHead['unknow_20_23'])
+        fbundle.write(bundleHead['filesize_24_27'])
+        fbundle.write(bundleHead['unknow_28_31'])
+        fbundle.write(bundleHead['fixed_32_43'])
+        fbundle.write(bundleHead['startrow_44_47'])
+        fbundle.write(bundleHead['endrow_48_51'])
+        fbundle.write(bundleHead['startcol_52_55'])
+        fbundle.write(bundleHead['endcol_56_59'])
+        fbundle.write(bundleHead['nullindex_60_65596'])
+        fbundle.close()
+
+    def InsertData(self, image):
+        # 插入图片 并返回插入位置
+        size = len(image)
+        file_size = os.path.getsize(self.fname) + size + 4
+                
+        fbundle = open(self.fname, 'rb+')
+        # 处理最大数据大小
+        fbundle.seek(8)
+        maxsize = struct.unpack('i', fbundle.read(4))[0]
+        if (maxsize < size): maxsize = size
+        fbundle.seek(8)
+        fbundle.write(struct.pack('i', maxsize))
+        # 处理非空数量
+        fbundle.seek(16)
+        nonullcount = struct.unpack('i', fbundle.read(4))[0]
+        nonullcount = ((nonullcount / 4) + 1) * 4
+        fbundle.seek(16)
+        fbundle.write(struct.pack('i', nonullcount))
+        # 处理文件大小
+        fbundle.seek(24)
+        fbundle.write(struct.pack('i', file_size))
+
+        # 写入图片数据
+        fbundle.seek(0, 2)
+        position = fbundle.tell()
+        fbundle.write(struct.pack('i', file_size))
+        fbundle.wrtie(image)
+
+        fbundle.close()
+        
+        return position
+        
 
 class BundlxClass:
     # 存储索引类
@@ -122,14 +190,41 @@ class BundlxClass:
         # 反序: 0x00000000FF
         # 再转成整数: 255
 
-        result = (ord(value[4]) & 0xFF) << 32 | \
-                 (ord(value[3]) & 0xFF) << 24 | \
-                 (ord(value[2]) & 0xFF) << 16 | \
-                 (ord(value[1]) & 0xFF) << 8 | \
-                 (ord(value[0]) & 0xFF)
-
+        value = value + '000000'.decode('hex')
+        result = struct.unpack('q', value)[0]
+        #result = (ord(value[4]) & 0xFF) << 32 | \
+        #         (ord(value[3]) & 0xFF) << 24 | \
+        #         (ord(value[2]) & 0xFF) << 16 | \
+        #         (ord(value[1]) & 0xFF) << 8 | \
+        #         (ord(value[0]) & 0xFF)
         return int(result)
-        
+
+    def IntToHex(self, value):
+        # 整形转5字节
+        result = struct.pack('q', value)[0:5]
+        return result
+
+    def CreateNew(self):
+        # 创建新的索引文件
+        bundlxData = '03000000100000000040000005000000'.decode('hex')
+        for n in range(0, 128*128):
+            offset = 60 + n * 4
+            offset = HexToInt(offset)
+            bundlxData += offset
+        bundlxData += '00000000100000001000000000000000'.decode('hex')
+        fbundlx = open(self.fname, 'wb')
+        fbundlx.write(bundlxData)
+        fbundlx.close()
+
+    def InsertData(self, row, col, offset):
+        # 写入索引
+        position = self.GetIndexPostion(row, col)
+        fbundlx = open(self.fname, 'rb+')
+        fbundlx.seek(position)
+        value = IntToHex(offset)
+        fbundlx.write(value)
+        fbundlx.close()
+        pass
         
 class TileData:
     # 瓦片数据处理类
@@ -161,9 +256,17 @@ class TileData:
         
         bundlename = dirname + '/' + filename
         return bundlename
+
+    def GetBundleRowCol(self, row, col):
+        # 获取起始的行号和列号
+        row = int(row / 128)
+        row = row * 128
+        col = int(col / 128)
+        col = col * 128
+        return row, col
         
-    def GetTile(self, level, row, col):
-        # 获取瓦片图形
+    def ReadTile(self, level, row, col):
+        # 读取瓦片数据
         # level 等级
         # row 总体行号
         # col 总体列号
@@ -174,6 +277,10 @@ class TileData:
         name = self.GetBundleName(level, row, col)
         bundlename = os.path.join(self.tiledir, name + '.bundle')
         bundlxname = os.path.join(self.tiledir, name + '.bundlx')
+
+        if (os.path.exists(bundlename) == False or
+            os.path.exists(bundlxname) == False):
+            return None
 
         if bundlename not in self.bundles.keys():
             self.bundles[bundlename] = BundleClass(bundlename)
@@ -188,7 +295,33 @@ class TileData:
         image = bundle_class.GetTileImage(position)
 
         return image
+
+    def WriteTile(self, level, row, col, data):
+        # 写入瓦片数据
+        name = self.GetBundleName(level, row, col)
+        bundlename = os.path.join(self.tiledir, name + '.bundle')
+        bundlxname = os.path.join(self.tiledir, name + '.bundlx')
+
+        if bundlename not in self.bundles.keys():
+            self.bundles[bundlename] = BundleClass(bundlename)
+        if bundlxname not in self.bundlxs.keys():
+            self.bundlxs[bundlxname] = BundlxClass(bundlxname)
+
+        bundle_class = self.bundles[bundlename]
+        bundlx_class = self.bundlxs[bundlxname]
+
+        if (os.path.exists(bundlename) == False):
+            # 创建新的瓦片集
+            startrow, startcol = self.GetBundleRowCol(row, col)
+            bundle_class.CreateNew(startrow, startcol)
             
+        if (os.path.exists(bundlxname) == False):
+            # 创建新的索引
+            bundlx_class.CreateNew()
+
+        # 先写瓦片
+        offset = bundle_class.InsertData(data)
+        bundlx_class.InsertData(row, col, offset)            
         
 
 if __name__ == '__main__':
@@ -208,19 +341,44 @@ if __name__ == '__main__':
     print 'ok.'
     '''
 
-    tiles = TileData(u'C:/Users/Administrator/Desktop/影像切片/切片测试/_alllayers')
+    #tiles = TileData(u'C:/Users/Administrator/Desktop/影像切片/切片测试/_alllayers')
+    #im = tiles.ReadTile(2, 768, 640)
+    #print len(im)
 
-    
-    for row in range(768, 768+128):
-        for col in range(640, 640+128):
-            im = tiles.GetTile(2, row, col)
+    start_row = 768
+    start_col = 640
+
+    bundleHead = {
+        'fixed_00_07': '0300000000400000'.decode('hex'),
+        'maxsize_08_11': '00000000'.decode('hex'),
+        'fixed_12_15': '05000000'.decode('hex'),
+        'nonull_16_19': '00000000'.decode('hex'),
+        'unknow_20_23': '00000000'.decode('hex'),
+        'filesize_24_27': struct.pack('i', 60 + 4*128*128),
+        'unknow_28_31': '00000000'.decode('hex'),
+        'fixed_32_43': '280000000000000010000000'.decode('hex'),
+        'startrow_44_47': struct.pack('i', start_row),
+        'endrow_48_51': struct.pack('i', start_row + 128),
+        'startcol_52_55': struct.pack('i', start_col),
+        'endcol_56_59': struct.pack('i', start_col + 128),
+        'nullindex_60_65596': ''.zfill(4*128*128).decode('hex')
+    }
+
+    bec = BundleClass('aa.bundle')
+    bec.CreateNew(start_row, start_col)
+    print 'ok'
+
+    '''
+    for row in range(53888, 53888+128):
+        for col in range(41472, 41472+128):
+            im = tiles.ReadTile(8, row, col)
             size = len(im)
             if (size > 0):
                 print row, col, size
-                f = open('%s-%s.png' % (row, col), 'wb')
+                f = open('./out/data/%s-%s.png' % (row, col), 'wb')
                 f.write(im)
                 f.close()
-            
+    '''
     
 
 

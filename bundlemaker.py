@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import os, sys, math, json
+import os, sys, math, json, struct
 
 # 1. 将碎瓦片生成ESRI的紧凑数据
 # 2. 将ESRI紧凑数据解包成零碎数据
@@ -57,6 +57,20 @@ class BundleClass:
         self.fname = fname
         pass
 
+    def GetTileImage(self, position):
+        # 获取单张瓦片图像
+        # position 偏移量
+        # returns the binary array of the image from the bundle file
+        # given the path of the bundle file, and the row and column
+        # of the image
+        fbundle = open(self.fname, 'rb')
+        fbundle.seek(position)
+        value = fbundle.read(4)
+        size = struct.unpack('i', value)[0]
+        image = fbundle.read(size)
+        fbundle.close()
+        return image
+
 class BundlxClass:
     # 存储索引类
     def __init__(self, fname):
@@ -71,9 +85,9 @@ class BundlxClass:
         # reads from the index file and returns the position of the
         # image in the bundle file, given the path of the index file
         # and the row and column fo the image
-        if (row, col) in tile_pos_dic.keys():
+        if (row, col) in self.tile_pos_dic.keys():
             # 如果字典里有偏移量就直接返回
-            return tile_pos_dic[(row, col)]
+            return self.tile_pos_dic[(row, col)]
         # 打开索引文件读取偏移量
         position = self.GetIndexPostion(row, col)
         fbundlx = open(self.fname, 'rb')
@@ -82,7 +96,7 @@ class BundlxClass:
         fbundlx.close()
         # 保存字典
         result = self.HexToInt(value)
-        tile_pos_dic[(row, col)] = result
+        self.tile_pos_dic[(row, col)] = result
         
         return result
 
@@ -107,19 +121,23 @@ class BundlxClass:
         # 例如: 0xFF00000000
         # 反序: 0x00000000FF
         # 再转成整数: 255
-        result = (value[4] & 0xFF) << 32 |
-                 (value[3] & 0xFF) << 24 |
-                 (value[2] & 0xFF) << 16 |
-                 (value[1] & 0xFF) << 8 |
-                 (value[0] & 0xFF)
-                 
+
+        result = (ord(value[4]) & 0xFF) << 32 | \
+                 (ord(value[3]) & 0xFF) << 24 | \
+                 (ord(value[2]) & 0xFF) << 16 | \
+                 (ord(value[1]) & 0xFF) << 8 | \
+                 (ord(value[0]) & 0xFF)
+
         return int(result)
         
         
 class TileData:
     # 瓦片数据处理类
     def __init__(self, tiledir):
-        
+        # 初始化瓦片字典和索引字典
+        self.bundles = {}
+        self.bundlxs = {}
+        self.tiledir = tiledir
         pass
 
     def GetBundleName(self, level, row, col):
@@ -141,24 +159,69 @@ class TileData:
         # 
         dirname = 'L%02d' % int(level)
         
-        return dirname + '/' + filename
-
-    
+        bundlename = dirname + '/' + filename
+        return bundlename
         
     def GetTile(self, level, row, col):
         # 获取瓦片图形
+        # level 等级
+        # row 总体行号
+        # col 总体列号
         # returns the binary array of the image from the bundle file
         # given the path of the bundle file, and the row and column
         # of the image
+
+        name = self.GetBundleName(level, row, col)
+        bundlename = os.path.join(self.tiledir, name + '.bundle')
+        bundlxname = os.path.join(self.tiledir, name + '.bundlx')
+
+        if bundlename not in self.bundles.keys():
+            self.bundles[bundlename] = BundleClass(bundlename)
+        if bundlxname not in self.bundlxs.keys():
+            self.bundlxs[bundlxname] = BundlxClass(bundlxname)
+
+        bundle_class = self.bundles[bundlename]
+        bundlx_class = self.bundlxs[bundlxname]
+
         
+        position = bundlx_class.GetTilePosition(row, col)
+        image = bundle_class.GetTileImage(position)
+
+        return image
+            
         
-        
-        pass
 
 if __name__ == '__main__':
     #
     print '[==DoDo==]'
     print 'Bundle Maker.'
     print 'Encode: %s' %  sys.getdefaultencoding()
+    '''
+    bec = BundleClass(u'c:/Users/Administrator/Desktop/影像切片/切片测试/_alllayers/L02/R0300C0280.bundle')
+    im = bec.GetTileImage(144476)
+    ne = 144476 + len(im)+4
+    print ne
+    im = bec.GetTileImage(ne)
+    f = open('aa.png', 'wb')
+    f.write(im)
+    f.close()
+    print 'ok.'
+    '''
+
+    tiles = TileData(u'C:/Users/Administrator/Desktop/影像切片/切片测试/_alllayers')
 
     
+    for row in range(768, 768+128):
+        for col in range(640, 640+128):
+            im = tiles.GetTile(2, row, col)
+            size = len(im)
+            if (size > 0):
+                print row, col, size
+                f = open('%s-%s.png' % (row, col), 'wb')
+                f.write(im)
+                f.close()
+            
+    
+
+
+        

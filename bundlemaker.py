@@ -106,6 +106,7 @@ class BundleClass:
         fbundle.write(bundleHead['nullindex_60_65596'])
         fbundle.close()
 
+
     def InsertData(self, image):
         # 插入图片 并返回插入位置
         size = len(image)
@@ -132,7 +133,7 @@ class BundleClass:
         fbundle.seek(0, 2)
         position = fbundle.tell()
         fbundle.write(struct.pack('i', file_size))
-        fbundle.wrtie(image)
+        fbundle.write(image)
 
         fbundle.close()
         
@@ -190,13 +191,13 @@ class BundlxClass:
         # 反序: 0x00000000FF
         # 再转成整数: 255
 
-        value = value + '000000'.decode('hex')
-        result = struct.unpack('q', value)[0]
-        #result = (ord(value[4]) & 0xFF) << 32 | \
-        #         (ord(value[3]) & 0xFF) << 24 | \
-        #         (ord(value[2]) & 0xFF) << 16 | \
-        #         (ord(value[1]) & 0xFF) << 8 | \
-        #         (ord(value[0]) & 0xFF)
+        #value = value + '000000'.decode('hex')
+        #result = struct.unpack('q', value)[0]
+        result = (ord(value[4]) & 0xFF) << 32 | \
+                 (ord(value[3]) & 0xFF) << 24 | \
+                 (ord(value[2]) & 0xFF) << 16 | \
+                 (ord(value[1]) & 0xFF) << 8 | \
+                 (ord(value[0]) & 0xFF)
         return int(result)
 
     def IntToHex(self, value):
@@ -209,19 +210,20 @@ class BundlxClass:
         bundlxData = '03000000100000000040000005000000'.decode('hex')
         for n in range(0, 128*128):
             offset = 60 + n * 4
-            offset = HexToInt(offset)
+            offset = self.IntToHex(offset)
             bundlxData += offset
         bundlxData += '00000000100000001000000000000000'.decode('hex')
         fbundlx = open(self.fname, 'wb')
         fbundlx.write(bundlxData)
         fbundlx.close()
 
+
     def InsertData(self, row, col, offset):
         # 写入索引
         position = self.GetIndexPostion(row, col)
         fbundlx = open(self.fname, 'rb+')
         fbundlx.seek(position)
-        value = IntToHex(offset)
+        value = self.IntToHex(offset)
         fbundlx.write(value)
         fbundlx.close()
         pass
@@ -239,8 +241,6 @@ class TileData:
         # 通过等级 行号 列号获取集合名字
         # row 总体行号
         # col 总体列号
-        bundlename = ''
-
         # returns the name of the bundle that will hold the image
         # if it exists given the row and column of that image
         # round down to nearest 128
@@ -290,7 +290,6 @@ class TileData:
         bundle_class = self.bundles[bundlename]
         bundlx_class = self.bundlxs[bundlxname]
 
-        
         position = bundlx_class.GetTilePosition(row, col)
         image = bundle_class.GetTileImage(position)
 
@@ -301,6 +300,10 @@ class TileData:
         name = self.GetBundleName(level, row, col)
         bundlename = os.path.join(self.tiledir, name + '.bundle')
         bundlxname = os.path.join(self.tiledir, name + '.bundlx')
+
+        basedir = os.path.dirname(bundlename)
+        if (os.path.exists(basedir) == False):
+            os.makedirs(basedir)
 
         if bundlename not in self.bundles.keys():
             self.bundles[bundlename] = BundleClass(bundlename)
@@ -321,6 +324,7 @@ class TileData:
 
         # 先写瓦片
         offset = bundle_class.InsertData(data)
+        # 修改索引
         bundlx_class.InsertData(row, col, offset)            
         
 
@@ -341,10 +345,11 @@ if __name__ == '__main__':
     print 'ok.'
     '''
 
-    #tiles = TileData(u'C:/Users/Administrator/Desktop/影像切片/切片测试/_alllayers')
+    #tiles = TileData(u'D:/DODO/PYTHON/瓦片制作/out')
     #im = tiles.ReadTile(2, 768, 640)
     #print len(im)
 
+    '''
     start_row = 768
     start_col = 640
 
@@ -367,18 +372,37 @@ if __name__ == '__main__':
     bec = BundleClass('aa.bundle')
     bec.CreateNew(start_row, start_col)
     print 'ok'
+    '''
 
     '''
-    for row in range(53888, 53888+128):
-        for col in range(41472, 41472+128):
-            im = tiles.ReadTile(8, row, col)
+    tiles = TileData(u'D:/DODO/PYTHON/瓦片制作/out')
+    for row in range(13440, 13440+128):
+        for col in range(10368, 10368+128):
+            im = tiles.ReadTile(6, row, col)
+            if (im == None): continue
             size = len(im)
             if (size > 0):
-                print row, col, size
-                f = open('./out/data/%s-%s.png' % (row, col), 'wb')
+                #print row, col, size
+                fname = './out/data/%s-%s.png' % (row, col)
+                print fname
+                f = open(fname, 'wb')
                 f.write(im)
                 f.close()
     '''
+
+    tiles = TileData(u'D:/DODO/PYTHON/瓦片制作/out')
+    f = open('./out/files.txt', 'r')
+    for line in f:
+        line = line.replace('\n', '')
+        imfile = open(line, 'rb')
+        imdata = imfile.read()
+        imfile.close()
+        
+
+        row = int(line[11:16])
+        col = int(line[17:22])
+        print line, row, col
+        tiles.WriteTile(6, row, col, imdata)
     
 
 

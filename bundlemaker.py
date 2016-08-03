@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import os, sys, math, json, struct
+import os, sys, math, json, struct, re
 
 # 1. 将碎瓦片生成ESRI的紧凑数据
 # 2. 将ESRI紧凑数据解包成零碎数据
@@ -333,6 +333,50 @@ if __name__ == '__main__':
     print '[==DoDo==]'
     print 'Bundle Maker.'
     print 'Encode: %s' %  sys.getdefaultencoding()
+
+    inpath = './out/MAP/_alllayers/'
+    outpath = './out/MAP/_alllayers_bundle/'
+
+    if os.path.exists(outpath) == False:
+        os.makedirs(outpath)
+
+    print 'scan files'
+    dirs = []
+    files = []
+    # 遍历目录
+    for parent,dirnames,filenames in os.walk(inpath):
+        for dirname in dirnames:
+            dirs.append(os.path.join(parent, dirname))
+        for filename in filenames:
+            files.append(os.path.join(parent, filename))
+    
+    print 'file count: %s' % len(files)
+
+    index = 0
+    tiles = TileData(outpath)
+    for fname in files:
+        # ./out/MAP/_alllayers/L03/R00000000/C00000004.JPG
+        fname = fname.replace('\\', '/')
+        pattern = '/L(?P<level>[0-9a-fA-F]+?)/R(?P<row>[0-9a-fA-F]+?)/C(?P<col>[0-9a-fA-F]+?)\.'
+        matchdata = re.search(pattern, fname, re.I)
+        if matchdata == None: continue
+        # 
+        level = int(matchdata.group('level'))
+        row = int(matchdata.group('row'), 16)
+        col = int(matchdata.group('col'), 16)
+
+        imfile = open(fname, 'rb')
+        imdata = imfile.read()
+        imfile.close()
+        
+        tiles.WriteTile(level, row, col, imdata)
+        index += 1
+        if (index % 100 == 0):
+            print '[{0} {1}/{2}]: {3}'.format(level, row, col, fname)
+
+    print 'OK.'
+                              
+
     '''
     bec = BundleClass(u'c:/Users/Administrator/Desktop/影像切片/切片测试/_alllayers/L02/R0300C0280.bundle')
     im = bec.GetTileImage(144476)
@@ -390,6 +434,7 @@ if __name__ == '__main__':
                 f.close()
     '''
 
+    '''
     tiles = TileData(u'D:/DODO/PYTHON/瓦片制作/out')
     f = open('./out/files.txt', 'r')
     for line in f:
@@ -403,6 +448,7 @@ if __name__ == '__main__':
         col = int(line[17:22])
         print line, row, col
         tiles.WriteTile(6, row, col, imdata)
+    '''
     
 
 

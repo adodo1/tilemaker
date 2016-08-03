@@ -84,9 +84,9 @@ class BundleClass:
             'unknow_28_31': '00000000'.decode('hex'),
             'fixed_32_43': '280000000000000010000000'.decode('hex'),
             'startrow_44_47': struct.pack('i', start_row),
-            'endrow_48_51': struct.pack('i', start_row + 128),
+            'endrow_48_51': struct.pack('i', start_row + 128 - 1),
             'startcol_52_55': struct.pack('i', start_col),
-            'endcol_56_59': struct.pack('i', start_col + 128),
+            'endcol_56_59': struct.pack('i', start_col + 128 - 1),
             'nullindex_60_65596': ''.zfill(4*128*128*2).decode('hex')
             }
         #
@@ -132,7 +132,7 @@ class BundleClass:
         # 写入图片数据
         fbundle.seek(0, 2)
         position = fbundle.tell()
-        fbundle.write(struct.pack('i', file_size))
+        fbundle.write(struct.pack('i', size))
         fbundle.write(image)
 
         fbundle.close()
@@ -334,8 +334,9 @@ if __name__ == '__main__':
     print 'Bundle Maker.'
     print 'Encode: %s' %  sys.getdefaultencoding()
 
+    
     inpath = './out/MAP/_alllayers/'
-    outpath = './out/MAP/_alllayers_bundle/'
+    outpath = './out/MAP/_alllayers_build/'
 
     if os.path.exists(outpath) == False:
         os.makedirs(outpath)
@@ -371,10 +372,12 @@ if __name__ == '__main__':
         
         tiles.WriteTile(level, row, col, imdata)
         index += 1
-        if (index % 100 == 0):
-            print '[{0} {1}/{2}]: {3}'.format(level, row, col, fname)
+        if (index % 128 == 0):
+            print '{0}/{1} [L{2} R{3} C{4}]: {5}'.format(index, len(files), level, row, col, fname)
 
     print 'OK.'
+
+    
                               
 
     '''
@@ -419,21 +422,25 @@ if __name__ == '__main__':
     '''
 
     '''
-    tiles = TileData(u'D:/DODO/PYTHON/瓦片制作/out')
-    for row in range(13440, 13440+128):
-        for col in range(10368, 10368+128):
-            im = tiles.ReadTile(6, row, col)
+    tiles = TileData(u'C:/Users/Administrator/Desktop/影像切片/切片测试/_alllayers')
+    tileswrite = TileData(u'C:/Users/Administrator/Desktop/影像切片/切片测试/_alllayers/OUT')
+    for row in range(768, 768+128):
+        for col in range(640, 640+128):
+            im = tiles.ReadTile(2, row, col)
             if (im == None): continue
             size = len(im)
             if (size > 0):
-                #print row, col, size
-                fname = './out/data/%s-%s.png' % (row, col)
-                print fname
-                f = open(fname, 'wb')
-                f.write(im)
-                f.close()
+                print row, col, size
+                tileswrite.WriteTile(2, row, col, im)
+                
+                #fname = './out/data/%s-%s.png' % (row, col)
+                #print fname
+                #f = open(fname, 'wb')
+                #f.write(im)
+                #f.close()
+    print 'OK.'
     '''
-
+    
     '''
     tiles = TileData(u'D:/DODO/PYTHON/瓦片制作/out')
     f = open('./out/files.txt', 'r')

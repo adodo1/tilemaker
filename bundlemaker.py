@@ -336,7 +336,7 @@ if __name__ == '__main__':
 
     
     inpath = './out/MAP/_alllayers/'
-    outpath = './out/MAP/_alllayers_build/'
+    outpath = './out/MAP/_alllayers_compact/'
 
     if os.path.exists(outpath) == False:
         os.makedirs(outpath)

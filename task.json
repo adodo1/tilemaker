@@ -4,10 +4,10 @@
     "version": 198,
     "server": "google.cn",
     "subdomain": ["0", "1", "2"],
-    "top_lat": 24.5733530658,
-    "left_lng": 109.2054748535,
-    "bottom_lat": 24.0834549244,
-    "right_lng": 109.8042297363,
+    "top_lat": 24.76429,
+    "left_lng": 109.10797,
+    "bottom_lat": 24.03267,
+    "right_lng": 109.95529,
     "tiles": [{
         "zoom": 0,
         "buffer": 1

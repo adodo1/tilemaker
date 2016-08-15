@@ -99,6 +99,7 @@ class Spider:
             response = requests.get(url, proxies=proxies, stream=True)
             data = response.raw.read()
             #if (len(data) < 2048): return False
+            if (data[0:2]=='<!'): return False
             open(savefile, 'wb').write(data)
             return True
         except:
@@ -106,6 +107,7 @@ class Spider:
                 response = requests.get(url, proxies=proxies, stream=True)
                 data = response.raw.read()
                 #if (len(data) < 2048): return False
+                if (data[0:2]=='<!'): return False
                 open(savefile, 'wb').write(data)
                 return True
             except Exception, ex:

@@ -80,6 +80,8 @@ class Spider:
     def __init__(self, outpath):
         # Initialize
         #/kh/v=693&x=210758&y=112861&z=18&s=Galileo
+        #http://t6.tianditu.cn/DataServer?T=vec_w&X=26345&Y=14098&L=15
+        #self.TILES_URL = 'http://t6.tianditu.cn/DataServer?T=vec_w&X={0}&Y={1}&L={2}'              # tianditu
         #self.TILES_URL = 'http://khm1.google.com/kh/v=692&hl=en&x={0}&y={1}&z={2}&s=Galile'        # URLS
         self.TILES_URL = 'http://mt3.google.cn/vt/lyrs=s&hl=en&x={0}&y={1}&z={2}'   #
         self.outpath = outpath

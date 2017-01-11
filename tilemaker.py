@@ -85,6 +85,7 @@ class Spider:
         #self.TILES_URL = 'http://khm1.google.com/kh/v=692&hl=en&x={0}&y={1}&z={2}&s=Galile'        # URLS
         #http://mt[0123].google.cn/vt/lyrs=h&hl=zh-CN&gl=cn&&x={x}&y={y}&z={z}
         #http://mt0.google.cn/vt/lyrs=h&hl=zh-CN&gl=cn&x=26345&y=1409&z=15                          # google labels
+        #http://mt1.google.cn/vt/lyrs=t@130,r@367000000&hl=zh-cn&gl=cn&src=app&x=26302&y=14040&z=15&s=Gali  # google dem
         self.TILES_URL = 'http://mt3.google.cn/vt/lyrs=s&hl=en&x={0}&y={1}&z={2}'   #
         self.outpath = outpath
         self.num = 0

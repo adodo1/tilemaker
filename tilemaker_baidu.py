@@ -87,7 +87,7 @@ class Spider:
         #http://mt[0123].google.cn/vt/lyrs=h&hl=zh-CN&gl=cn&&x={x}&y={y}&z={z}
         #http://mt0.google.cn/vt/lyrs=h&hl=zh-CN&gl=cn&x=26345&y=1409&z=15                          # google labels
         #http://mt1.google.cn/vt/lyrs=t@130,r@367000000&hl=zh-cn&gl=cn&src=app&x=26302&y=14040&z=15&s=Gali  # google dem
-        self.TILES_URL = 'http://its.map.baidu.com:8002/traffic/TrafficTileService?x={0}&y={1}&level={2}&label=web2D&v=081&smallflow=1&scaler=1'   #
+        self.TILES_URL = 'http://online1.map.bdimg.com/tile/?qt=tile&x={0}&y={1}&z={2}&styles=pl'   #
         self.outpath = outpath
         self.num = 0
 
@@ -169,12 +169,12 @@ class GMap:
         self.Dpi = 96.0                     # tile dpi
 
     def GetTileMatrixMinXY(self, zoom):
-        # tile min xy
+        # tile min baidu xy
         return 0, 0
 
     def GetTileMatrixMaxXY(self, zoom):
-        # tile max xy
-        xy = (1 << zoom)
+        # tile max baidu xy
+        xy = 1 << zoom
         return xy - 1, xy - 1
 
     def GetTileMatrixSizePixel(self, zoom):
@@ -297,17 +297,45 @@ class GMap:
         right, bottom = self.FromCoordinateToTileXY(bottom_lat, right_lng, zoom)    # tile
         tmin_x, tmin_y = self.GetTileMatrixMinXY(zoom)                              # tile matrix size min
         tmax_x, tmax_y = self.GetTileMatrixMaxXY(zoom)                              # tile matrix size max
+        tfull_w, tfull_h = tmax_x + 1, tmax_y + 1                                   # tiles full pix size
+
+        # bd extent
+        bd_tmin_x = 0 - (tmax_x + 1) / 2
+        bd_tmin_y = 0 - (tmax_y + 1) / 2
+        bd_tmax_x = (tmax_x + 1) / 2 - 1
+        bd_tmax_y = (tmax_y + 1) / 2 - 1
+        if (bd_tmax_x < 0): bd_tmax_x = 0
+        if (bd_tmax_y < 0): bd_tmax_y = 0
 
         # buffer
         left = left - buff
         top = top - buff
         right = right + buff
         bottom = bottom + buff
+        # baidu buffer
+        bd_left = bd_left - buff
+        bd_top = bd_top + buff
+        bd_right = bd_right + buff
+        bd_bottom = bd_bottom - buff
 
+        #print '--------------------------'
+        #print 'zoom: %s' % zoom
+        #print 'buffer: %s' % buff
+        #print 'baidu extent: ({0}, {1}, {2}, {3})'.format(bd_tmin_x, bd_tmin_y, bd_tmax_x, bd_tmax_y)
+        #print 'baidu region: ({0}, {1}, {2}, {3})'.format(bd_left, bd_top, bd_right, bd_bottom)
+
+        # 
         tile_min_x = min(max(left, tmin_x), tmax_x)
         tile_max_x = min(max(right, tmin_x), tmax_x)
         tile_min_y = min(max(top, tmin_y), tmax_y)
         tile_max_y = min(max(bottom, tmin_y), tmax_y)
+        #
+        bd_tile_min_x = min(max(bd_left, bd_tmin_x), bd_tmax_x)
+        bd_tile_max_x = min(max(bd_right, bd_tmin_x), bd_tmax_x)
+        bd_tile_min_y = min(max(bd_bottom, bd_tmin_y), bd_tmax_y)
+        bd_tile_max_y = min(max(bd_top, bd_tmin_y), bd_tmax_y)
+
+        #print 'new baidu region: ({0}, {1}, {2}, {3})'.format(bd_tile_min_x, bd_tile_min_y, bd_tile_max_x, bd_tile_max_y)
         
         # tile xy -> full pixel xy
         pixel_lt_x = tile_min_x * self.TileSizeWidth
@@ -320,8 +348,8 @@ class GMap:
         gps_rb_lat, gps_rb_lng = self.FromPixelToCoordinate(pixel_rb_x, pixel_rb_y, zoom)
 
         # full pixel xy -> mercator coordinate xy
-        pixel_full_width = (tmax_x + 1) * self.TileSizeWidth
-        pixel_full_height = (tmax_y + 1) * self.TileSizeHeight
+        pixel_full_width = tfull_w * self.TileSizeWidth
+        pixel_full_height = tfull_h * self.TileSizeHeight
         mc_lt_x = (pixel_lt_x * 1.0 / pixel_full_width) * DOMAIN_LEN * 2 - DOMAIN_LEN
         mc_lt_y = DOMAIN_LEN - (pixel_lt_y * 1.0 / pixel_full_height) * DOMAIN_LEN * 2
         mc_rb_x = (pixel_rb_x * 1.0 / pixel_full_width) * DOMAIN_LEN * 2 - DOMAIN_LEN
@@ -330,10 +358,10 @@ class GMap:
         # make json result
         result = {
             # tile info
-            'tile_minx':bd_left,
-            'tile_maxx':bd_right,
-            'tile_miny':bd_bottom,
-            'tile_maxy':bd_top,
+            'tile_minx':bd_tile_min_x,
+            'tile_maxx':bd_tile_max_x,
+            'tile_miny':bd_tile_min_y,
+            'tile_maxy':bd_tile_max_y,
             # pixel info
             'pixel_width':(tile_max_x - tile_min_x + 1) * self.TileSizeWidth,
             'pixel_height':(tile_max_y - tile_min_y + 1) * self.TileSizeHeight,
@@ -370,6 +398,8 @@ class GMap:
         right, bottom = self.FromCoordinateToTileXY(bottom_lat, right_lng, zoom)    # tile
         tmin_x, tmin_y = self.GetTileMatrixMinXY(zoom)                              # tile matrix size min
         tmax_x, tmax_y = self.GetTileMatrixMaxXY(zoom)                              # tile matrix size max
+
+        print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 
         # buffer
         left = left - buff
@@ -815,7 +845,7 @@ if __name__ == '__main__':
     
     # init
     maxThreads = 16                         # the num of thread
-    outpath = './out/'                      # output path
+    outpath = './outbaidu/'                 # output path
     jsonfile = 'task.json'                  # task json file
     mapname = 'MAP'                         # map name
 
@@ -832,7 +862,6 @@ if __name__ == '__main__':
 
     # load task
     tasks = GetTask(jsonfile)
-
     # do work
     success = True
     try:
@@ -869,7 +898,5 @@ if __name__ == '__main__':
         success = False
         
     print 'Finish', success
-    
-    
 
     

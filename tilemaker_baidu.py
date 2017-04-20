@@ -86,7 +86,7 @@ class Spider:
         #http://mt[0123].google.cn/vt/lyrs=h&hl=zh-CN&gl=cn&&x={x}&y={y}&z={z}
         #http://mt0.google.cn/vt/lyrs=h&hl=zh-CN&gl=cn&x=26345&y=1409&z=15                          # google labels
         #http://mt1.google.cn/vt/lyrs=t@130,r@367000000&hl=zh-cn&gl=cn&src=app&x=26302&y=14040&z=15&s=Gali  # google dem
-        self.TILES_URL = 'http://its.map.baidu.com:8002/traffic/TrafficTileService?x={0}&y={1}&level={2}&label=web2D&v=081&smallflow=1&scaler=1'   #
+        self.TILES_URL = 'http://online1.map.bdimg.com/tile/?qt=tile&x={0}&y={1}&z={2}&styles=pl'   #
         self.outpath = outpath
         self.num = 0
 
@@ -124,7 +124,10 @@ class Spider:
         url = self.TILES_URL.format(x, y, zoom)
         try:
             # save file
-            savefile = '%s/L%02d/R%08x/C%08x.PNG' % (self.outpath, zoom, y, x)
+            bdMercator = BaiduMercator()
+            tileX, tileY = bdMercator.BaiduTileToStandard(x, y, zoom)       # baidu tile xy to standard tile xy
+            
+            savefile = '%s/L%02d/R%08x/C%08x.PNG' % (self.outpath, zoom, tileY, tileX)
             success = self.GetIMG(url, savefile)
             
             if (success == False):
@@ -291,21 +294,29 @@ class GMap:
         bd_right, bd_bottom = bdMercator.LngLatToTile(right_lng, bottom_lat, zoom)
 
         # region -> tile extent
-        left, top = self.FromCoordinateToTileXY(top_lat, left_lng, zoom)            # tile
-        right, bottom = self.FromCoordinateToTileXY(bottom_lat, right_lng, zoom)    # tile
+        #left, top = self.FromCoordinateToTileXY(top_lat, left_lng, zoom)            # tile
+        #right, bottom = self.FromCoordinateToTileXY(bottom_lat, right_lng, zoom)    # tile
         tmin_x, tmin_y = self.GetTileMatrixMinXY(zoom)                              # tile matrix size min
         tmax_x, tmax_y = self.GetTileMatrixMaxXY(zoom)                              # tile matrix size max
 
-        # buffer
-        left = left - buff
-        top = top - buff
-        right = right + buff
-        bottom = bottom + buff
+        # 百度瓦片转标准瓦片
+        tile_left_x, tile_top_y = bdMercator.BaiduTileToStandard(bd_left, bd_top, zoom)
+        tile_right_x, tile_bottom_y = bdMercator.BaiduTileToStandard(bd_right, bd_bottom, zoom)
 
-        tile_min_x = min(max(left, tmin_x), tmax_x)
-        tile_max_x = min(max(right, tmin_x), tmax_x)
-        tile_min_y = min(max(top, tmin_y), tmax_y)
-        tile_max_y = min(max(bottom, tmin_y), tmax_y)
+        # buffer
+        tile_left_x = tile_left_x - buff
+        tile_top_y = tile_top_y - buff
+        tile_right_x = tile_right_x + buff
+        tile_bottom_y = tile_bottom_y +buff
+        
+        tile_min_x = min(max(tile_left_x, tmin_x), tmax_x)
+        tile_max_x = min(max(tile_right_x, tmin_x), tmax_x)
+        tile_min_y = min(max(tile_top_y, tmin_y), tmax_y)
+        tile_max_y = min(max(tile_bottom_y, tmin_y), tmax_y)
+
+        # 标准瓦片反转百度瓦片
+        bd_left, bd_top = bdMercator.StandardTileToBaidu(tile_min_x, tile_min_y, zoom)
+        bd_right, bd_bottom = bdMercator.StandardTileToBaidu(tile_max_x, tile_max_y, zoom)
         
         # tile xy -> full pixel xy
         pixel_lt_x = tile_min_x * self.TileSizeWidth
@@ -805,6 +816,7 @@ class BaiduMercator:
         # 标准瓦片坐标转百度瓦片坐标
         # 1. (0,0)点移到中心
         # 2. Y轴取反
+        if (zoom == 0): return 0, 0
         size = 1 << zoom
         bdTileX = tileX - size / 2
         bdTileY = tileY - size / 2
@@ -852,10 +864,10 @@ if __name__ == '__main__':
     # load task
     tasks = GetTask(jsonfile)
 
-    test = BaiduMercator()
-    print test.StandardTileToBaidu(0, 0, 3)
+    #print '#################'
+    #test = BaiduMercator()
+    #print test.BaiduTileToStandard(0, -1, 2)
     
-    '''
     # do work
     success = True
     try:
@@ -892,7 +904,6 @@ if __name__ == '__main__':
         success = False
         
     print 'Finish', success
-    '''
     
 
     

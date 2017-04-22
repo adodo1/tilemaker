@@ -544,7 +544,7 @@ class MAPMetedata:
         # TileImageInfo
         tileimageinfo = """
   <TileImageInfo xsi:type="typens:TileImageInfo">
-    <CacheTileFormat>JPEG</CacheTileFormat>
+    <CacheTileFormat>PNG</CacheTileFormat>
     <CompressionQuality>75</CompressionQuality>
     <Antialiasing>false</Antialiasing>
   </TileImageInfo>

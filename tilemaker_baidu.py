@@ -565,8 +565,8 @@ class MAPMetedata:
         # TileOrigin
         tileorigin = """
     <TileOrigin xsi:type="typens:PointN">
-      <X>-20037508.342787001</X>
-      <Y>20037508.342787001</Y>
+      <X>-33554431.736734092</X>
+      <Y>33554431.736734092</Y>
     </TileOrigin>
         """
         # TileCols

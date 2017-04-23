@@ -252,16 +252,16 @@ class GMap:
         #scale = ground_dis / map_dis
         # ---------------------------------------------------
         # fun 2
-        #scale = (math.cos(lat * math.pi/180) * (DOMAIN_LEN * 2) * self.Dpi) / (256 * (2 ** zoom) * 0.0254)
+        scale = (math.cos(lat * math.pi/180) * (DOMAIN_LEN * 2) * self.Dpi) / (256 * (2 ** zoom) * 0.0254)
         # ---------------------------------------------------
         # fun3
         #scale = 591657550.500000 / (2^(zoom-1))
-        scale = 495390232.333727 / (2 ** (zoom - 1))    # use DOMAIN_LEN = 20037508.3427892
+        #scale = 495390232.333727 / (2 ** (zoom - 1))    # use DOMAIN_LEN = 20037508.3427892
         return scale
     def GetGroundResolution(self, zoom, lat=0):
         # get resolution, how much m in one pix
-        #ground_resolution = (math.cos(lat * math.pi/180) * 2 * math.pi * 6378137) / (256 * (2 ** zoom))
-        ground_resolution = (math.cos(0 * math.pi/180) * 2 * math.pi * 6378137) / (80150034 / 2 ** (19 - zoom))
+        ground_resolution = (math.cos(lat * math.pi/180) * 2 * math.pi * 6378137) / (256 * (2 ** zoom))
+        #ground_resolution = (math.cos(0 * math.pi/180) * 2 * math.pi * 6378137) / (80150034 / 2 ** (19 - zoom))
         return ground_resolution
 
     def FromCoordinateToPixel(self, lat, lng, zoom):
@@ -565,8 +565,8 @@ class MAPMetedata:
         # TileOrigin
         tileorigin = """
     <TileOrigin xsi:type="typens:PointN">
-      <X>-33554431.736734092</X>
-      <Y>33554431.736734092</Y>
+      <X>-33554432.0</X>
+      <Y>33554432.0</Y>
     </TileOrigin>
         """
         # TileCols

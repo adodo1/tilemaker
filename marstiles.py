@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import os, sys, math, json, struct, re, shutil, Image
+import os, sys, math, json, struct, re, shutil
 import numpy as np
+from PIL import Image
 
 # 火星瓦片转WGS瓦片
 # WGS瓦片转火星瓦片

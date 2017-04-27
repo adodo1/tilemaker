@@ -275,7 +275,7 @@ class MarsTiles:
         h = maxPixY - minPixY + 1
 
         # 矩阵中取出
-        outarr = newarr[oriX:oriX+w, oriY:oriY+h]
+        outarr = newarr[oriY:oriY+h, oriX:oriX+w]
 
         # 导出
         return outarr
@@ -287,12 +287,12 @@ class MarsTiles:
         if (os.path.exists(path)==False): os.makedirs(path)
         
         newim = Image.fromarray(nn, 'RGB')
-        newim.resize((self.TileSizeWidth, self.TileSizeHeight), Image.ANTIALIAS)
+        newim = newim.resize((self.TileSizeWidth, self.TileSizeHeight), Image.ANTIALIAS)
         newim.save(savefile, 'JPEG')
 
     def GetTile(self, tileX, tileY, zoom):
         # 获取指定瓦片 如果没有返回空白图片
-        tileFile = '%s/L%02d/R%08x/C%08x.PNG' % (self.tilesfrom, zoom, tileY, tileX)
+        tileFile = '%s/L%02d/R%08x/C%08x.JPG' % (self.tilesfrom, zoom, tileY, tileX)
         if (os.path.exists(tileFile)):
             im = Image.open(tileFile).convert('RGB')
         else:
@@ -308,16 +308,28 @@ if __name__ == '__main__':
     print 'Encode: %s' %  sys.getdefaultencoding()
 
     
-    inpath = u'E:/DoDo/Python/瓦片图制作/火星瓦片测试/_alllayers'
-    outpath = u'E:/DoDo/Python/瓦片图制作/火星瓦片转标准/_alllayers'
+    inpath = u'E:/DoDo/Python/瓦片图制作/out/MAP_MARS/_alllayers'
+    outpath = u'E:/DoDo/Python/瓦片图制作/out/MAP_OUT/_alllayers'
 
     if os.path.exists(outpath) == False:
         os.makedirs(outpath)
 
 
     #mc = MercatorCoor()
-    #print mc.FromLatLngToPixel(24.310793218521027, 109.43918645381927, 18)
+    #mt = MarsTiles('./', './')
+    #pixX, pixY = mc.FromLatLngToPixel(24.306875, 109.431092, 19)
+    #print mc.FromPixelToTileXY(pixX,pixY)
     #print mc.FromPixelToLatLng(53955375, 28880131, 18)
+
+    #print mt.PixStandardToMars(107907796.5, 57761797.5, 19)
+    #print mt.PixMarsToStandard(107909510.5, 57762899.5, 19)
+    
+
+    
+    #ff = u'E:/DoDo/Python/瓦片图制作/out/MAP_OUT/_alllayers/L19/R0003715f/C00066e8a.JPG'
+    #im = Image.open(ff).convert('RGB')
+    #print im.size
+    
 
     '''
     mc = MercatorCoor()
@@ -369,6 +381,10 @@ if __name__ == '__main__':
         marTileY = row
         zoom = level
 
+        if (marTileX == 421521 and marTileY == 225636):
+            print "aaaaaaaaaaa"
+            print "bbbbbbbbbbb"
+
         try:
             staTileX, staTileY = mt.TileMarsToStandard(marTileX, marTileY, zoom)        # 火星瓦片块转标准块
             staPixX, staPixY = mc.FromTileXYToPixel(staTileX, staTileY)                 # 对应标准瓦片块左上角像素坐标
@@ -398,8 +414,8 @@ if __name__ == '__main__':
         index += 1
         if (index % 128 == 0):
             print u'{0}/{1} [L{2} R{3} C{4}]: {5}'.format(index, len(files), level, row, col, fname)
-
-
+    
+    
 
 
 

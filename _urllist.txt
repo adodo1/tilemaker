@@ -1,0 +1,24 @@
+http://mt1.google.cn/vt/lyrs=s&hl=en&x={0}&y={1}&z={2}                         << 谷歌卫星无偏移
+http://khm1.google.com/kh/v={version}&hl=en&x={0}&y={1}&z={2}                  << 谷歌卫星无偏移
+http://online1.map.bdimg.com/tile/?qt=tile&x={0}&y={1}&z={2}&styles=pl         << 百度街道百度坐标
+http://mt0.google.cn/vt/lyrs=h&hl=zh-CN&gl=cn&x=421525&y=225636&z=19           << 谷歌注记火星坐标
+http://t2.tianditu.cn/DataServer?T=cva_w&X={0}&Y={1}&L={2}                     << 天地图注记无偏移
+http://t2.tianditu.cn/DataServer?T=vec_w&X={0}&Y={1}&L={2}                     << 天地图街道无偏移
+
+http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x=206&y=111&z=8         << 高德街道火星坐标
+http://webst04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=6&x=209&y=107&z=8         << 高德卫星火星坐标
+http://webst03.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=3315&y=1759&z=12      << 高德注记火星坐标
+
+http://p2.map.soso.com/maptilesv2/18/13171/9333/210746_149330.png              << 腾讯街道火星坐标 不知道规则
+http://p0.map.soso.com/sateTiles/18/13171/9333/210743_149329.jpg               << 腾讯卫星火星坐标 不知道规则
+http://p0.map.soso.com//sateTranTiles/18/13171/9332/210741_149326.png          << 腾讯注记火星坐标 不知道规则
+
+http://cache1.arcgisonline.cn/arcgis/rest/services/ChinaOnlineCommunity/MapServer/tile/17/56408/105371     << ArcGIS街道火星坐标
+http://www.arcgisonline.cn/ArcGIS/rest/services/ChinaOnlineStreetGray/MapServer/tile/16/28201/52686        << ArcGIS灰色火星坐标
+
+
+http://mt1.google.cn/vt/lyrs=t@130&hl=zh-cn&gl=cn&src=app&x={0}&y={1}&z={2}&s=Gali                  << 谷歌地形无偏移
+http://mt1.google.cn/vt/lyrs=t@130,r@367000000&hl=zh-cn&gl=cn&src=app&x=26302&y=14040&z=15&s=Gali   << 谷歌地形带标注无偏移
+http://mt1.google.cn/vt/lyrs=s@{version}&hl=zh-cn&gl=cn&src=app&x={0}&y={1}&z={2}&s=Galileo         << 谷歌卫星火星坐标
+
+http://its.map.baidu.com:8002/traffic/TrafficTileService?x={0}&y={1}&level={2}&label=web2D&v=081&smallflow=1&scaler=1  << 百度交通图百度坐标

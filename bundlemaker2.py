@@ -176,8 +176,8 @@ class BundleClass:
         row = row % 128
         col = col % 128
         # 
-        base_pos = 64 + col * 8 * 128
-        offset = row * 8
+        base_pos = 64 + row * 8 * 128
+        offset = col * 8
         # 
         position = base_pos + offset
         return position
@@ -312,11 +312,11 @@ if __name__ == '__main__':
         # ./out/MAP/_alllayers/L03/R00000000/C00000004.JPG
         fname = fname.replace('\\', '/')
         #pattern = '/L(?P<level>[0-9a-fA-F]+?)/R(?P<row>[0-9a-fA-F]+?)/C(?P<col>[0-9a-fA-F]+?)\.'
-        pattern = '/(?P<level>[0-9]+?)/(?P<row>[0-9]+?)/(?P<col>[0-9]+?)\.'
+        pattern = '/(?P<level>[0-9]+?)/(?P<col>[0-9]+?)/(?P<row>[0-9]+?)\.'
         matchdata = re.search(pattern, fname, re.I)
         if matchdata == None: continue
         # 
-        level = int(matchdata.group('level'))
+        level = int(matchdata.group('level'), 10)
         row = int(matchdata.group('row'), 10)
         col = int(matchdata.group('col'), 10)
 
